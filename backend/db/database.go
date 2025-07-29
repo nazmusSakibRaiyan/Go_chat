@@ -1,132 +1,249 @@
 package db
 
 import (
-	"database/sql"
+	"context"
 	"go-chat-backend/models"
+	"time"
 
-	_ "github.com/lib/pq"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func Initialize(databaseURL string) (*sql.DB, error) {
-	db, err := sql.Open("postgres", databaseURL)
+type MongoDB struct {
+	Client   *mongo.Client
+	Database *mongo.Database
+}
+
+// Initialize connects to MongoDB and returns a MongoDB instance
+func Initialize(mongoURI, dbName string) (*MongoDB, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Connect to MongoDB
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
 	if err != nil {
 		return nil, err
 	}
 
-	if err := db.Ping(); err != nil {
+	// Ping the database
+	err = client.Ping(ctx, nil)
+	if err != nil {
 		return nil, err
 	}
 
-	// Create tables
-	if err := createTables(db); err != nil {
+	database := client.Database(dbName)
+
+	// Create MongoDB instance
+	mongoDB := &MongoDB{
+		Client:   client,
+		Database: database,
+	}
+
+	// Initialize collections and indexes
+	if err := mongoDB.initializeCollections(); err != nil {
 		return nil, err
 	}
 
-	return db, nil
+	return mongoDB, nil
 }
 
-func createTables(db *sql.DB) error {
-	queries := []string{
-		`CREATE TABLE IF NOT EXISTS rooms (
-			id SERIAL PRIMARY KEY,
-			name VARCHAR(255) UNIQUE NOT NULL,
-			description TEXT,
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-		)`,
-		`CREATE TABLE IF NOT EXISTS users (
-			id SERIAL PRIMARY KEY,
-			username VARCHAR(255) UNIQUE NOT NULL,
-			email VARCHAR(255) UNIQUE NOT NULL,
-			password_hash VARCHAR(255) NOT NULL,
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-		)`,
-		`CREATE TABLE IF NOT EXISTS messages (
-			id SERIAL PRIMARY KEY,
-			room_id INTEGER REFERENCES rooms(id),
-			user_id INTEGER REFERENCES users(id),
-			username VARCHAR(255) NOT NULL,
-			content TEXT NOT NULL,
-			message_type VARCHAR(50) DEFAULT 'text',
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-		)`,
+// Close closes the MongoDB connection
+func (m *MongoDB) Close() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	return m.Client.Disconnect(ctx)
+}
+
+// initializeCollections creates collections and indexes
+func (m *MongoDB) initializeCollections() error {
+	ctx := context.Background()
+
+	// Create indexes for rooms collection
+	roomsCollection := m.Database.Collection("rooms")
+	_, err := roomsCollection.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{"name", 1}},
+		Options: options.Index().SetUnique(true),
+	})
+	if err != nil {
+		return err
 	}
 
-	for _, query := range queries {
-		if _, err := db.Exec(query); err != nil {
+	// Create indexes for users collection
+	usersCollection := m.Database.Collection("users")
+	_, err = usersCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{
+			Keys:    bson.D{{"username", 1}},
+			Options: options.Index().SetUnique(true),
+		},
+		{
+			Keys:    bson.D{{"email", 1}},
+			Options: options.Index().SetUnique(true),
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	// Create indexes for messages collection
+	messagesCollection := m.Database.Collection("messages")
+	_, err = messagesCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{
+			Keys: bson.D{{"room_id", 1}, {"created_at", -1}},
+		},
+		{
+			Keys: bson.D{{"created_at", -1}},
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	// Insert default rooms if they don't exist
+	return m.insertDefaultRooms()
+}
+
+// insertDefaultRooms creates default chat rooms
+func (m *MongoDB) insertDefaultRooms() error {
+	ctx := context.Background()
+	roomsCollection := m.Database.Collection("rooms")
+
+	defaultRooms := []models.Room{
+		{
+			Name:        "general",
+			Description: "General chat room for everyone",
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		},
+		{
+			Name:        "random",
+			Description: "Random discussions",
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		},
+		{
+			Name:        "tech",
+			Description: "Technology discussions",
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		},
+	}
+
+	for _, room := range defaultRooms {
+		filter := bson.M{"name": room.Name}
+		update := bson.M{
+			"$setOnInsert": room,
+		}
+		opts := options.Update().SetUpsert(true)
+		_, err := roomsCollection.UpdateOne(ctx, filter, update, opts)
+		if err != nil {
 			return err
 		}
 	}
 
-	// Insert default room if not exists
-	_, err := db.Exec(`
-		INSERT INTO rooms (name, description) 
-		VALUES ('general', 'General chat room for everyone') 
-		ON CONFLICT (name) DO NOTHING
-	`)
-
-	return err
+	return nil
 }
 
-func GetRooms(db *sql.DB) ([]models.Room, error) {
-	rows, err := db.Query("SELECT id, name, description, created_at FROM rooms ORDER BY name")
+// GetRooms retrieves all chat rooms
+func (m *MongoDB) GetRooms() ([]models.Room, error) {
+	ctx := context.Background()
+	collection := m.Database.Collection("rooms")
+
+	cursor, err := collection.Find(ctx, bson.M{}, options.Find().SetSort(bson.D{{"name", 1}}))
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer cursor.Close(ctx)
 
 	var rooms []models.Room
-	for rows.Next() {
-		var room models.Room
-		err := rows.Scan(&room.ID, &room.Name, &room.Description, &room.CreatedAt)
-		if err != nil {
-			return nil, err
-		}
-		rooms = append(rooms, room)
+	if err := cursor.All(ctx, &rooms); err != nil {
+		return nil, err
 	}
 
 	return rooms, nil
 }
 
-func CreateRoom(db *sql.DB, room models.Room) (*models.Room, error) {
-	var newRoom models.Room
-	err := db.QueryRow(
-		"INSERT INTO rooms (name, description) VALUES ($1, $2) RETURNING id, name, description, created_at",
-		room.Name, room.Description,
-	).Scan(&newRoom.ID, &newRoom.Name, &newRoom.Description, &newRoom.CreatedAt)
+// CreateRoom creates a new chat room
+func (m *MongoDB) CreateRoom(room models.Room) (*models.Room, error) {
+	ctx := context.Background()
+	collection := m.Database.Collection("rooms")
 
+	room.ID = primitive.NewObjectID()
+	room.CreatedAt = time.Now()
+	room.UpdatedAt = time.Now()
+
+	result, err := collection.InsertOne(ctx, room)
 	if err != nil {
 		return nil, err
 	}
 
-	return &newRoom, nil
+	room.ID = result.InsertedID.(primitive.ObjectID)
+	return &room, nil
 }
 
-func GetRoomMessages(db *sql.DB, roomID int, limit int) ([]models.Message, error) {
-	query := `
-		SELECT id, room_id, user_id, username, content, message_type, created_at 
-		FROM messages 
-		WHERE room_id = $1 
-		ORDER BY created_at DESC 
-		LIMIT $2
-	`
+// GetRoomByID retrieves a room by its ID
+func (m *MongoDB) GetRoomByID(roomID string) (*models.Room, error) {
+	ctx := context.Background()
+	collection := m.Database.Collection("rooms")
 
-	rows, err := db.Query(query, roomID, limit)
+	objectID, err := primitive.ObjectIDFromHex(roomID)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
-	var messages []models.Message
-	for rows.Next() {
-		var msg models.Message
-		err := rows.Scan(&msg.ID, &msg.RoomID, &msg.UserID, &msg.Username, &msg.Content, &msg.Type, &msg.CreatedAt)
-		if err != nil {
-			return nil, err
-		}
-		messages = append(messages, msg)
+	var room models.Room
+	err = collection.FindOne(ctx, bson.M{"_id": objectID}).Decode(&room)
+	if err != nil {
+		return nil, err
 	}
 
-	// Reverse the slice to get chronological order
+	return &room, nil
+}
+
+// SaveMessage saves a message to the database
+func (m *MongoDB) SaveMessage(message models.Message) (*models.Message, error) {
+	ctx := context.Background()
+	collection := m.Database.Collection("messages")
+
+	message.ID = primitive.NewObjectID()
+	message.CreatedAt = time.Now()
+
+	result, err := collection.InsertOne(ctx, message)
+	if err != nil {
+		return nil, err
+	}
+
+	message.ID = result.InsertedID.(primitive.ObjectID)
+	return &message, nil
+}
+
+// GetRoomMessages retrieves messages for a specific room
+func (m *MongoDB) GetRoomMessages(roomID string, limit int) ([]models.Message, error) {
+	ctx := context.Background()
+	collection := m.Database.Collection("messages")
+
+	objectID, err := primitive.ObjectIDFromHex(roomID)
+	if err != nil {
+		return nil, err
+	}
+
+	opts := options.Find().
+		SetSort(bson.D{{"created_at", -1}}).
+		SetLimit(int64(limit))
+
+	cursor, err := collection.Find(ctx, bson.M{"room_id": objectID}, opts)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var messages []models.Message
+	if err := cursor.All(ctx, &messages); err != nil {
+		return nil, err
+	}
+
+	// Reverse to get chronological order
 	for i, j := 0, len(messages)-1; i < j; i, j = i+1, j-1 {
 		messages[i], messages[j] = messages[j], messages[i]
 	}
@@ -134,10 +251,53 @@ func GetRoomMessages(db *sql.DB, roomID int, limit int) ([]models.Message, error
 	return messages, nil
 }
 
-func SaveMessage(db *sql.DB, msg models.Message) error {
-	_, err := db.Exec(
-		"INSERT INTO messages (room_id, user_id, username, content, message_type) VALUES ($1, $2, $3, $4, $5)",
-		msg.RoomID, msg.UserID, msg.Username, msg.Content, msg.Type,
-	)
-	return err
+// CreateUser creates a new user
+func (m *MongoDB) CreateUser(user models.User) (*models.User, error) {
+	ctx := context.Background()
+	collection := m.Database.Collection("users")
+
+	user.ID = primitive.NewObjectID()
+	user.CreatedAt = time.Now()
+	user.UpdatedAt = time.Now()
+
+	result, err := collection.InsertOne(ctx, user)
+	if err != nil {
+		return nil, err
+	}
+
+	user.ID = result.InsertedID.(primitive.ObjectID)
+	return &user, nil
+}
+
+// GetUserByUsername retrieves a user by username
+func (m *MongoDB) GetUserByUsername(username string) (*models.User, error) {
+	ctx := context.Background()
+	collection := m.Database.Collection("users")
+
+	var user models.User
+	err := collection.FindOne(ctx, bson.M{"username": username}).Decode(&user)
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+// GetUserByID retrieves a user by ID
+func (m *MongoDB) GetUserByID(userID string) (*models.User, error) {
+	ctx := context.Background()
+	collection := m.Database.Collection("users")
+
+	objectID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	var user models.User
+	err = collection.FindOne(ctx, bson.M{"_id": objectID}).Decode(&user)
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }

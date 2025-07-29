@@ -221,9 +221,7 @@
         <div class="room-list">
             <h3>Chat Rooms</h3>
             <div class="room-buttons">
-                <button class="room-button active" data-room-id="1">General</button>
-                <button class="room-button" data-room-id="2">Random</button>
-                <button class="room-button" data-room-id="3">Tech</button>
+                <!-- Rooms will be loaded dynamically -->
             </div>
         </div>
 
@@ -248,11 +246,13 @@
             constructor() {
                 this.websocket = null;
                 this.username = '';
-                this.currentRoomId = 1;
+                this.currentRoomId = '';
                 this.isConnected = false;
+                this.rooms = [];
                 
                 this.initializeElements();
                 this.bindEvents();
+                this.loadRooms();
             }
 
             initializeElements() {
@@ -263,7 +263,54 @@
                 this.messageInput = document.getElementById('messageInput');
                 this.sendBtn = document.getElementById('sendBtn');
                 this.statusElement = document.getElementById('status');
-                this.roomButtons = document.querySelectorAll('.room-button');
+                this.roomButtonsContainer = document.querySelector('.room-buttons');
+            }
+
+            async loadRooms() {
+                try {
+                    const response = await fetch('http://localhost:8080/api/rooms');
+                    this.rooms = await response.json();
+                    this.renderRoomButtons();
+                    
+                    // Set default room
+                    if (this.rooms.length > 0) {
+                        this.currentRoomId = this.rooms[0].id;
+                    }
+                } catch (error) {
+                    console.error('Failed to load rooms:', error);
+                    // Fallback to default rooms
+                    this.rooms = [
+                        {id: 'general', name: 'General', description: 'General chat room'},
+                        {id: 'random', name: 'Random', description: 'Random discussions'},
+                        {id: 'tech', name: 'Tech', description: 'Technology discussions'}
+                    ];
+                    this.currentRoomId = this.rooms[0].id;
+                    this.renderRoomButtons();
+                }
+            }
+
+            renderRoomButtons() {
+                this.roomButtonsContainer.innerHTML = '';
+                
+                this.rooms.forEach((room, index) => {
+                    const button = document.createElement('button');
+                    button.className = 'room-button';
+                    button.dataset.roomId = room.id;
+                    button.textContent = room.name;
+                    button.title = room.description;
+                    
+                    if (index === 0) {
+                        button.classList.add('active');
+                    }
+                    
+                    button.addEventListener('click', () => {
+                        this.switchRoom(room.id);
+                    });
+                    
+                    this.roomButtonsContainer.appendChild(button);
+                });
+                
+                this.roomButtons = this.roomButtonsContainer.querySelectorAll('.room-button');
             }
 
             bindEvents() {
@@ -281,13 +328,6 @@
                     if (e.key === 'Enter') {
                         this.connect();
                     }
-                });
-
-                this.roomButtons.forEach(button => {
-                    button.addEventListener('click', () => {
-                        const roomId = parseInt(button.dataset.roomId);
-                        this.switchRoom(roomId);
-                    });
                 });
             }
 
@@ -399,8 +439,9 @@
                 
                 messageElement.className = messageClass;
                 
-                const now = new Date();
-                const timeString = now.toLocaleTimeString();
+                // Use provided timestamp or current time
+                const timestamp = message.timestamp ? new Date(message.timestamp) : new Date();
+                const timeString = timestamp.toLocaleTimeString();
                 
                 if (message.type === 'user_joined' || message.type === 'user_left') {
                     messageElement.innerHTML = `
@@ -427,19 +468,26 @@
                 // Update UI
                 this.roomButtons.forEach(button => {
                     button.classList.remove('active');
-                    if (parseInt(button.dataset.roomId) === roomId) {
+                    if (button.dataset.roomId === roomId) {
                         button.classList.add('active');
                     }
                 });
 
                 this.currentRoomId = roomId;
                 
+                // Get room name for display
+                const room = this.rooms.find(r => r.id === roomId);
+                const roomName = room ? room.name : roomId;
+                
                 // Clear messages
                 this.messagesContainer.innerHTML = `
                     <div class="message system">
-                        <div class="message-content">Switched to room ${roomId}. ${this.isConnected ? 'Reconnecting...' : 'Connect to start chatting.'}</div>
+                        <div class="message-content">Switched to ${roomName} room. ${this.isConnected ? 'Reconnecting...' : 'Connect to start chatting.'}</div>
                     </div>
                 `;
+
+                // Load room messages
+                this.loadRoomMessages(roomId);
 
                 // Reconnect if already connected
                 if (this.isConnected) {
@@ -447,6 +495,25 @@
                     setTimeout(() => {
                         this.connect();
                     }, 500);
+                }
+            }
+
+            async loadRoomMessages(roomId) {
+                try {
+                    const response = await fetch(`http://localhost:8080/api/rooms/${roomId}/messages`);
+                    const messages = await response.json();
+                    
+                    // Display previous messages
+                    messages.forEach(message => {
+                        this.displayMessage({
+                            type: 'chat_message',
+                            username: message.username,
+                            content: message.content,
+                            timestamp: message.created_at
+                        });
+                    });
+                } catch (error) {
+                    console.error('Failed to load room messages:', error);
                 }
             }
 

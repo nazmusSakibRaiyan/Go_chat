@@ -2,14 +2,15 @@ package chat
 
 import (
 	"encoding/json"
+	"go-chat-backend/db"
 	"go-chat-backend/models"
 	"log"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 var upgrader = websocket.Upgrader{
@@ -23,7 +24,7 @@ type Client struct {
 	conn     *websocket.Conn
 	send     chan []byte
 	username string
-	roomID   int
+	roomID   string
 }
 
 type Hub struct {
@@ -31,16 +32,18 @@ type Hub struct {
 	broadcast  chan []byte
 	register   chan *Client
 	unregister chan *Client
-	rooms      map[int]map[*Client]bool
+	rooms      map[string]map[*Client]bool
+	mongoDB    *db.MongoDB
 }
 
-func NewHub() *Hub {
+func NewHub(mongoDB *db.MongoDB) *Hub {
 	return &Hub{
 		broadcast:  make(chan []byte),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 		clients:    make(map[*Client]bool),
-		rooms:      make(map[int]map[*Client]bool),
+		rooms:      make(map[string]map[*Client]bool),
+		mongoDB:    mongoDB,
 	}
 }
 
@@ -63,7 +66,7 @@ func (h *Hub) Run() {
 			message, _ := json.Marshal(welcomeMsg)
 			h.broadcastToRoom(client.roomID, message)
 
-			log.Printf("Client %s connected to room %d", client.username, client.roomID)
+			log.Printf("Client %s connected to room %s", client.username, client.roomID)
 
 		case client := <-h.unregister:
 			if _, ok := h.clients[client]; ok {
@@ -80,7 +83,7 @@ func (h *Hub) Run() {
 				message, _ := json.Marshal(leaveMsg)
 				h.broadcastToRoom(client.roomID, message)
 
-				log.Printf("Client %s disconnected from room %d", client.username, client.roomID)
+				log.Printf("Client %s disconnected from room %s", client.username, client.roomID)
 			}
 
 		case message := <-h.broadcast:
@@ -96,7 +99,7 @@ func (h *Hub) Run() {
 	}
 }
 
-func (h *Hub) broadcastToRoom(roomID int, message []byte) {
+func (h *Hub) broadcastToRoom(roomID string, message []byte) {
 	if room, exists := h.rooms[roomID]; exists {
 		for client := range room {
 			select {
@@ -119,16 +122,24 @@ func HandleWebSocket(hub *Hub, w http.ResponseWriter, r *http.Request) {
 
 	// Get username and room from query parameters
 	username := r.URL.Query().Get("username")
-	roomIDStr := r.URL.Query().Get("room_id")
+	roomID := r.URL.Query().Get("room_id")
 
 	if username == "" {
 		username = "Anonymous"
 	}
 
-	roomID := 1 // Default room
-	if roomIDStr != "" {
-		if id, err := strconv.Atoi(roomIDStr); err == nil {
-			roomID = id
+	// Default to first room if not provided
+	if roomID == "" {
+		// Try to get the first available room
+		if hub.mongoDB != nil {
+			rooms, err := hub.mongoDB.GetRooms()
+			if err == nil && len(rooms) > 0 {
+				roomID = rooms[0].ID.Hex()
+			}
+		}
+		// Fallback to a default ObjectID-like string
+		if roomID == "" {
+			roomID = "general"
 		}
 	}
 
@@ -177,6 +188,28 @@ func (c *Client) readPump() {
 		// Handle different message types
 		switch wsMsg.Type {
 		case "chat_message":
+			// Save message to database if MongoDB is available
+			if c.hub.mongoDB != nil {
+				roomObjectID, err := primitive.ObjectIDFromHex(c.roomID)
+				if err != nil {
+					log.Printf("Invalid room ID: %v", err)
+					continue
+				}
+
+				msg := models.Message{
+					RoomID:    roomObjectID,
+					Username:  c.username,
+					Content:   wsMsg.Content,
+					Type:      "text",
+					CreatedAt: time.Now(),
+				}
+
+				_, err = c.hub.mongoDB.SaveMessage(msg)
+				if err != nil {
+					log.Printf("Error saving message: %v", err)
+				}
+			}
+
 			// Broadcast to room
 			response := models.WebSocketMessage{
 				Type:     "chat_message",
@@ -188,8 +221,7 @@ func (c *Client) readPump() {
 			message, _ := json.Marshal(response)
 			c.hub.broadcastToRoom(c.roomID, message)
 
-			// TODO: Save to database when db connection is available
-			log.Printf("Message from %s in room %d: %s", c.username, c.roomID, wsMsg.Content)
+			log.Printf("Message from %s in room %s: %s", c.username, c.roomID, wsMsg.Content)
 		}
 	}
 }
@@ -237,51 +269,75 @@ func (c *Client) writePump() {
 }
 
 // REST API handlers
-func GetRooms(c *gin.Context) {
-	// For now, return mock data. In production, fetch from database
-	rooms := []models.Room{
-		{ID: 1, Name: "general", Description: "General chat room", CreatedAt: time.Now()},
-		{ID: 2, Name: "random", Description: "Random discussions", CreatedAt: time.Now()},
-		{ID: 3, Name: "tech", Description: "Technology discussions", CreatedAt: time.Now()},
+func GetRooms(c *gin.Context, mongoDB *db.MongoDB) {
+	if mongoDB == nil {
+		// Return mock data if no database
+		rooms := []map[string]interface{}{
+			{"id": "general", "name": "general", "description": "General chat room", "created_at": time.Now()},
+			{"id": "random", "name": "random", "description": "Random discussions", "created_at": time.Now()},
+			{"id": "tech", "name": "tech", "description": "Technology discussions", "created_at": time.Now()},
+		}
+		c.JSON(http.StatusOK, rooms)
+		return
+	}
+
+	rooms, err := mongoDB.GetRooms()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch rooms"})
+		return
 	}
 
 	c.JSON(http.StatusOK, rooms)
 }
 
-func CreateRoom(c *gin.Context) {
+func CreateRoom(c *gin.Context, mongoDB *db.MongoDB) {
 	var room models.Room
 	if err := c.ShouldBindJSON(&room); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Set creation time
-	room.CreatedAt = time.Now()
-
-	// In production, save to database and return the created room
-	room.ID = int(time.Now().Unix()) // Mock ID
-
-	c.JSON(http.StatusCreated, room)
-}
-
-func GetRoomMessages(c *gin.Context) {
-	roomIDStr := c.Param("id")
-	roomID, err := strconv.Atoi(roomIDStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid room ID"})
+	if mongoDB == nil {
+		// Return mock data if no database
+		room.ID = primitive.NewObjectID()
+		room.CreatedAt = time.Now()
+		room.UpdatedAt = time.Now()
+		c.JSON(http.StatusCreated, room)
 		return
 	}
 
-	// For now, return mock messages. In production, fetch from database
-	messages := []models.Message{
-		{
-			ID:        1,
-			RoomID:    roomID,
-			Username:  "System",
-			Content:   "Welcome to the chat room!",
-			Type:      "system",
-			CreatedAt: time.Now().Add(-1 * time.Hour),
-		},
+	createdRoom, err := mongoDB.CreateRoom(room)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create room"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, createdRoom)
+}
+
+func GetRoomMessages(c *gin.Context, mongoDB *db.MongoDB) {
+	roomID := c.Param("id")
+
+	if mongoDB == nil {
+		// Return mock messages if no database
+		messages := []map[string]interface{}{
+			{
+				"id":         primitive.NewObjectID().Hex(),
+				"room_id":    roomID,
+				"username":   "System",
+				"content":    "Welcome to the chat room!",
+				"type":       "system",
+				"created_at": time.Now().Add(-1 * time.Hour),
+			},
+		}
+		c.JSON(http.StatusOK, messages)
+		return
+	}
+
+	messages, err := mongoDB.GetRoomMessages(roomID, 50)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch messages"})
+		return
 	}
 
 	c.JSON(http.StatusOK, messages)

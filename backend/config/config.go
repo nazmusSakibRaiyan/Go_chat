@@ -8,7 +8,8 @@ import (
 
 type Config struct {
 	Port        string
-	DatabaseURL string
+	MongoURI    string
+	MongoDBName string
 	JWTSecret   string
 }
 
@@ -18,7 +19,8 @@ func Load() *Config {
 
 	return &Config{
 		Port:        getEnv("PORT", "8080"),
-		DatabaseURL: getEnv("DATABASE_URL", "postgres://user:password@localhost/chatdb?sslmode=disable"),
+		MongoURI:    getEnv("MONGODB_URI", "mongodb://localhost:27017"),
+		MongoDBName: getEnv("MONGODB_DATABASE", "go_chat_db"),
 		JWTSecret:   getEnv("JWT_SECRET", "your-secret-key"),
 	}
 }

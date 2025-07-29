@@ -1,35 +1,41 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
 
 type Room struct {
-	ID          int       `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	CreatedAt   time.Time `json:"created_at"`
+	ID          primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	Name        string             `json:"name" bson:"name"`
+	Description string             `json:"description" bson:"description"`
+	CreatedAt   time.Time          `json:"created_at" bson:"created_at"`
+	UpdatedAt   time.Time          `json:"updated_at" bson:"updated_at"`
 }
 
 type User struct {
-	ID           int       `json:"id"`
-	Username     string    `json:"username"`
-	Email        string    `json:"email"`
-	PasswordHash string    `json:"-"`
-	CreatedAt    time.Time `json:"created_at"`
+	ID           primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	Username     string             `json:"username" bson:"username"`
+	Email        string             `json:"email" bson:"email"`
+	PasswordHash string             `json:"-" bson:"password_hash"`
+	CreatedAt    time.Time          `json:"created_at" bson:"created_at"`
+	UpdatedAt    time.Time          `json:"updated_at" bson:"updated_at"`
 }
 
 type Message struct {
-	ID        int       `json:"id"`
-	RoomID    int       `json:"room_id"`
-	UserID    *int      `json:"user_id,omitempty"`
-	Username  string    `json:"username"`
-	Content   string    `json:"content"`
-	Type      string    `json:"type"`
-	CreatedAt time.Time `json:"created_at"`
+	ID        primitive.ObjectID  `json:"id" bson:"_id,omitempty"`
+	RoomID    primitive.ObjectID  `json:"room_id" bson:"room_id"`
+	UserID    *primitive.ObjectID `json:"user_id,omitempty" bson:"user_id,omitempty"`
+	Username  string              `json:"username" bson:"username"`
+	Content   string              `json:"content" bson:"content"`
+	Type      string              `json:"type" bson:"type"`
+	CreatedAt time.Time           `json:"created_at" bson:"created_at"`
 }
 
 type WebSocketMessage struct {
 	Type     string      `json:"type"`
-	RoomID   int         `json:"room_id,omitempty"`
+	RoomID   string      `json:"room_id,omitempty"`
 	Username string      `json:"username,omitempty"`
 	Content  string      `json:"content,omitempty"`
 	Data     interface{} `json:"data,omitempty"`

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"go-chat-backend/chat"
 	"go-chat-backend/config"
 	"go-chat-backend/db"
@@ -16,21 +15,22 @@ func main() {
 	// Load configuration
 	cfg := config.Load()
 
-	// Initialize database (optional for now)
-	var database *sql.DB
+	// Initialize MongoDB
+	var mongoDB *db.MongoDB
 	var err error
-	if cfg.DatabaseURL != "" {
-		database, err = db.Initialize(cfg.DatabaseURL)
+	if cfg.MongoURI != "" {
+		mongoDB, err = db.Initialize(cfg.MongoURI, cfg.MongoDBName)
 		if err != nil {
-			log.Printf("Warning: Failed to initialize database: %v", err)
+			log.Printf("Warning: Failed to initialize MongoDB: %v", err)
 			log.Println("Running without database support...")
 		} else {
-			defer database.Close()
+			defer mongoDB.Close()
+			log.Println("Connected to MongoDB successfully!")
 		}
 	}
 
 	// Create chat hub
-	hub := chat.NewHub()
+	hub := chat.NewHub(mongoDB)
 	go hub.Run()
 
 	// Setup router
@@ -38,7 +38,7 @@ func main() {
 
 	// CORS middleware
 	corsConfig := cors.DefaultConfig()
-	corsConfig.AllowOrigins = []string{"http://localhost:3000", "http://localhost:5173"}
+	corsConfig.AllowOrigins = []string{"http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:5500"}
 	corsConfig.AllowCredentials = true
 	corsConfig.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "Authorization"}
 	router.Use(cors.New(corsConfig))
@@ -52,9 +52,15 @@ func main() {
 		})
 
 		// REST API endpoints
-		api.GET("/rooms", chat.GetRooms)
-		api.POST("/rooms", chat.CreateRoom)
-		api.GET("/rooms/:id/messages", chat.GetRoomMessages)
+		api.GET("/rooms", func(c *gin.Context) {
+			chat.GetRooms(c, mongoDB)
+		})
+		api.POST("/rooms", func(c *gin.Context) {
+			chat.CreateRoom(c, mongoDB)
+		})
+		api.GET("/rooms/:id/messages", func(c *gin.Context) {
+			chat.GetRoomMessages(c, mongoDB)
+		})
 	}
 
 	// Health check
