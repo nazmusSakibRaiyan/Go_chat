@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Go Chat App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .chat-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            width: 90%;
+            max-width: 800px;
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: #4a5568;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .chat-header h1 {
+            margin: 0;
+        }
+
+        .user-info {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .user-info input, .user-info select {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            flex: 1;
+        }
+
+        .user-info button {
+            padding: 0.5rem 1rem;
+            background: #48bb78;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .user-info button:hover {
+            background: #38a169;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+            background: #f7fafc;
+        }
+
+        .message {
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+            border-radius: 5px;
+            max-width: 70%;
+        }
+
+        .message.own {
+            background: #bee3f8;
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .message.other {
+            background: #e2e8f0;
+        }
+
+        .message.system {
+            background: #fed7d7;
+            color: #c53030;
+            text-align: center;
+            margin: 0 auto;
+            max-width: 100%;
+        }
+
+        .message-username {
+            font-weight: bold;
+            font-size: 0.9em;
+            margin-bottom: 0.25rem;
+        }
+
+        .message-content {
+            word-wrap: break-word;
+        }
+
+        .message-time {
+            font-size: 0.7em;
+            color: #666;
+            margin-top: 0.25rem;
+        }
+
+        .chat-input {
+            padding: 1rem;
+            background: #edf2f7;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 0.75rem;
+            border: 1px solid #cbd5e0;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        .chat-input button {
+            padding: 0.75rem 1.5rem;
+            background: #4299e1;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .chat-input button:hover {
+            background: #3182ce;
+        }
+
+        .chat-input button:disabled {
+            background: #a0aec0;
+            cursor: not-allowed;
+        }
+
+        .status {
+            padding: 0.5rem;
+            text-align: center;
+            font-size: 0.9em;
+        }
+
+        .status.connected {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .status.disconnected {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
+        .room-list {
+            background: #f7fafc;
+            padding: 1rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .room-list h3 {
+            margin-bottom: 0.5rem;
+            color: #2d3748;
+        }
+
+        .room-buttons {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .room-button {
+            padding: 0.5rem 1rem;
+            background: #e2e8f0;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+
+        .room-button.active {
+            background: #4299e1;
+            color: white;
+        }
+
+        .room-button:hover {
+            background: #cbd5e0;
+        }
+
+        .room-button.active:hover {
+            background: #3182ce;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1>Go Chat App</h1>
+            <div class="user-info">
+                <input type="text" id="usernameInput" placeholder="Enter your username" maxlength="20">
+                <button id="connectBtn">Connect</button>
+                <button id="disconnectBtn" style="display: none; background: #e53e3e;">Disconnect</button>
+            </div>
+        </div>
+        
+        <div class="room-list">
+            <h3>Chat Rooms</h3>
+            <div class="room-buttons">
+                <button class="room-button active" data-room-id="1">General</button>
+                <button class="room-button" data-room-id="2">Random</button>
+                <button class="room-button" data-room-id="3">Tech</button>
+            </div>
+        </div>
+
+        <div class="status disconnected" id="status">
+            Disconnected - Enter username and click Connect
+        </div>
+
+        <div class="chat-messages" id="messages">
+            <div class="message system">
+                <div class="message-content">Welcome! Enter your username and connect to start chatting.</div>
+            </div>
+        </div>
+
+        <div class="chat-input">
+            <input type="text" id="messageInput" placeholder="Type your message..." disabled>
+            <button id="sendBtn" disabled>Send</button>
+        </div>
+    </div>
+
+    <script>
+        class ChatApp {
+            constructor() {
+                this.websocket = null;
+                this.username = '';
+                this.currentRoomId = 1;
+                this.isConnected = false;
+                
+                this.initializeElements();
+                this.bindEvents();
+            }
+
+            initializeElements() {
+                this.usernameInput = document.getElementById('usernameInput');
+                this.connectBtn = document.getElementById('connectBtn');
+                this.disconnectBtn = document.getElementById('disconnectBtn');
+                this.messagesContainer = document.getElementById('messages');
+                this.messageInput = document.getElementById('messageInput');
+                this.sendBtn = document.getElementById('sendBtn');
+                this.statusElement = document.getElementById('status');
+                this.roomButtons = document.querySelectorAll('.room-button');
+            }
+
+            bindEvents() {
+                this.connectBtn.addEventListener('click', () => this.connect());
+                this.disconnectBtn.addEventListener('click', () => this.disconnect());
+                this.sendBtn.addEventListener('click', () => this.sendMessage());
+                
+                this.messageInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.sendMessage();
+                    }
+                });
+
+                this.usernameInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.connect();
+                    }
+                });
+
+                this.roomButtons.forEach(button => {
+                    button.addEventListener('click', () => {
+                        const roomId = parseInt(button.dataset.roomId);
+                        this.switchRoom(roomId);
+                    });
+                });
+            }
+
+            connect() {
+                const username = this.usernameInput.value.trim();
+                if (!username) {
+                    alert('Please enter a username');
+                    return;
+                }
+
+                this.username = username;
+                const wsUrl = `ws://localhost:8080/api/ws?username=${encodeURIComponent(username)}&room_id=${this.currentRoomId}`;
+                
+                try {
+                    this.websocket = new WebSocket(wsUrl);
+                    
+                    this.websocket.onopen = () => {
+                        this.onConnected();
+                    };
+                    
+                    this.websocket.onmessage = (event) => {
+                        this.onMessage(event);
+                    };
+                    
+                    this.websocket.onclose = () => {
+                        this.onDisconnected();
+                    };
+                    
+                    this.websocket.onerror = (error) => {
+                        console.error('WebSocket error:', error);
+                        this.updateStatus('Connection error', 'disconnected');
+                    };
+                    
+                } catch (error) {
+                    console.error('Failed to connect:', error);
+                    this.updateStatus('Failed to connect', 'disconnected');
+                }
+            }
+
+            disconnect() {
+                if (this.websocket) {
+                    this.websocket.close();
+                }
+            }
+
+            onConnected() {
+                this.isConnected = true;
+                this.updateStatus(`Connected as ${this.username}`, 'connected');
+                
+                this.connectBtn.style.display = 'none';
+                this.disconnectBtn.style.display = 'inline-block';
+                this.usernameInput.disabled = true;
+                this.messageInput.disabled = false;
+                this.sendBtn.disabled = false;
+                
+                this.messageInput.focus();
+            }
+
+            onDisconnected() {
+                this.isConnected = false;
+                this.updateStatus('Disconnected', 'disconnected');
+                
+                this.connectBtn.style.display = 'inline-block';
+                this.disconnectBtn.style.display = 'none';
+                this.usernameInput.disabled = false;
+                this.messageInput.disabled = true;
+                this.sendBtn.disabled = true;
+                
+                this.websocket = null;
+            }
+
+            onMessage(event) {
+                try {
+                    const message = JSON.parse(event.data);
+                    this.displayMessage(message);
+                } catch (error) {
+                    console.error('Failed to parse message:', error);
+                }
+            }
+
+            sendMessage() {
+                const content = this.messageInput.value.trim();
+                if (!content || !this.isConnected) {
+                    return;
+                }
+
+                const message = {
+                    type: 'chat_message',
+                    content: content,
+                    room_id: this.currentRoomId
+                };
+
+                this.websocket.send(JSON.stringify(message));
+                this.messageInput.value = '';
+                this.messageInput.focus();
+            }
+
+            displayMessage(message) {
+                const messageElement = document.createElement('div');
+                
+                let messageClass = 'message';
+                if (message.type === 'user_joined' || message.type === 'user_left') {
+                    messageClass += ' system';
+                } else if (message.username === this.username) {
+                    messageClass += ' own';
+                } else {
+                    messageClass += ' other';
+                }
+                
+                messageElement.className = messageClass;
+                
+                const now = new Date();
+                const timeString = now.toLocaleTimeString();
+                
+                if (message.type === 'user_joined' || message.type === 'user_left') {
+                    messageElement.innerHTML = `
+                        <div class="message-content">${message.content}</div>
+                        <div class="message-time">${timeString}</div>
+                    `;
+                } else {
+                    messageElement.innerHTML = `
+                        <div class="message-username">${message.username}</div>
+                        <div class="message-content">${message.content}</div>
+                        <div class="message-time">${timeString}</div>
+                    `;
+                }
+                
+                this.messagesContainer.appendChild(messageElement);
+                this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+            }
+
+            switchRoom(roomId) {
+                if (roomId === this.currentRoomId) {
+                    return;
+                }
+
+                // Update UI
+                this.roomButtons.forEach(button => {
+                    button.classList.remove('active');
+                    if (parseInt(button.dataset.roomId) === roomId) {
+                        button.classList.add('active');
+                    }
+                });
+
+                this.currentRoomId = roomId;
+                
+                // Clear messages
+                this.messagesContainer.innerHTML = `
+                    <div class="message system">
+                        <div class="message-content">Switched to room ${roomId}. ${this.isConnected ? 'Reconnecting...' : 'Connect to start chatting.'}</div>
+                    </div>
+                `;
+
+                // Reconnect if already connected
+                if (this.isConnected) {
+                    this.disconnect();
+                    setTimeout(() => {
+                        this.connect();
+                    }, 500);
+                }
+            }
+
+            updateStatus(message, type) {
+                this.statusElement.textContent = message;
+                this.statusElement.className = `status ${type}`;
+            }
+        }
+
+        // Initialize the chat app
+        const chatApp = new ChatApp();
+    </script>
+</body>
+</html>

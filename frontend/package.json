@@ -1,0 +1,13 @@
+{
+  "name": "go-chat-frontend",
+  "version": "1.0.0",
+  "description": "Frontend for Go Chat Application",
+  "scripts": {
+    "start": "npx serve public",
+    "dev": "npx live-server public"
+  },
+  "devDependencies": {
+    "live-server": "^1.2.2",
+    "serve": "^14.2.1"
+  }
+}
