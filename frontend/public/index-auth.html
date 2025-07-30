@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Go Chat App - Secure Messaging</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+            width: 90%;
+            max-width: 900px;
+            min-height: 650px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        /* Authentication Styles */
+        .auth-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 3rem;
+            text-align: center;
+        }
+
+        .auth-form {
+            background: #f8f9fa;
+            padding: 2rem;
+            border-radius: 10px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .auth-form h2 {
+            color: #2d3748;
+            margin-bottom: 1.5rem;
+            font-size: 1.8rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #4a5568;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group input.error {
+            border-color: #e53e3e;
+        }
+
+        .form-group input.success {
+            border-color: #38a169;
+        }
+
+        .field-error {
+            color: #e53e3e;
+            font-size: 0.8rem;
+            margin-top: 0.25rem;
+            display: none;
+        }
+
+        .field-error.show {
+            display: block;
+        }
+
+        .password-strength {
+            height: 4px;
+            background: #e2e8f0;
+            border-radius: 2px;
+            margin-top: 0.5rem;
+            overflow: hidden;
+        }
+
+        .password-strength-bar {
+            height: 100%;
+            width: 0%;
+            transition: all 0.3s ease;
+            border-radius: 2px;
+        }
+
+        .strength-weak { background: #e53e3e; width: 25%; }
+        .strength-fair { background: #dd6b20; width: 50%; }
+        .strength-good { background: #3182ce; width: 75%; }
+        .strength-strong { background: #38a169; width: 100%; }
+
+        .btn {
+            width: 100%;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 1rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+
+        .btn-secondary:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .error-message {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .success-message {
+            background: #c6f6d5;
+            color: #22543d;
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Chat Styles */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            min-height: 650px;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+            color: white;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-header h1 {
+            font-size: 1.5rem;
+        }
+
+        .user-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .welcome-text {
+            color: #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .logout-btn {
+            padding: 0.5rem 1rem;
+            background: #e53e3e;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: #c53030;
+        }
+
+        .room-list {
+            background: #f1f5f9;
+            padding: 1rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .room-list h3 {
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .room-buttons {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .room-button {
+            padding: 0.5rem 1rem;
+            border: 2px solid #e2e8f0;
+            background: white;
+            color: #4a5568;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .room-button:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .room-button.active {
+            background: #667eea;
+            border-color: #667eea;
+            color: white;
+        }
+
+        .status {
+            padding: 0.5rem 1rem;
+            text-align: center;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .status.connected {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .status.disconnected {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
+        .status.connecting {
+            background: #fef3cd;
+            color: #d97706;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+            background: #ffffff;
+            max-height: 350px;
+        }
+
+        .message {
+            margin-bottom: 1rem;
+            padding: 0.75rem;
+            border-radius: 12px;
+            max-width: 75%;
+            word-wrap: break-word;
+            position: relative;
+        }
+
+        .message.own {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .message.other {
+            background: #f1f5f9;
+            color: #2d3748;
+            border: 1px solid #e2e8f0;
+        }
+
+        .message.system {
+            background: #fef3cd;
+            color: #d97706;
+            text-align: center;
+            margin: 0.5rem auto;
+            font-style: italic;
+            max-width: 90%;
+        }
+
+        .message-username {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 0.25rem;
+            opacity: 0.8;
+        }
+
+        .message-content {
+            font-size: 1rem;
+            line-height: 1.4;
+        }
+
+        .message-time {
+            font-size: 0.75rem;
+            opacity: 0.6;
+            margin-top: 0.25rem;
+        }
+
+        .chat-input {
+            padding: 1rem;
+            background: #f8f9fa;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 0.75rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 25px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .chat-input input:focus {
+            border-color: #667eea;
+        }
+
+        .chat-input button {
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s ease;
+        }
+
+        .chat-input button:hover {
+            transform: scale(1.05);
+        }
+
+        .chat-input button:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Loading spinner */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                width: 95%;
+                height: 95vh;
+            }
+            
+            .auth-container {
+                padding: 1.5rem;
+            }
+            
+            .chat-header {
+                flex-direction: column;
+                gap: 0.5rem;
+                text-align: center;
+            }
+            
+            .user-section {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            
+            .room-buttons {
+                justify-content: center;
+            }
+            
+            .message {
+                max-width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Authentication Section -->
+        <div id="authSection" class="auth-container">
+            <div class="auth-form">
+                <h2 id="authTitle">Welcome to Go Chat</h2>
+                
+                <div id="errorMessage" class="error-message hidden"></div>
+                <div id="successMessage" class="success-message hidden"></div>
+                
+                <!-- Login Form -->
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="loginUsername">Username</label>
+                        <input type="text" id="loginUsername" name="username" required autocomplete="username">
+                        <div class="field-error" id="loginUsernameError"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Password</label>
+                        <input type="password" id="loginPassword" name="password" required autocomplete="current-password">
+                        <div class="field-error" id="loginPasswordError"></div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <span id="loginBtnText">Sign In</span>
+                        <span id="loginLoader" class="loading hidden"></span>
+                    </button>
+                </form>
+                
+                <!-- Register Form -->
+                <form id="registerForm" class="hidden">
+                    <div class="form-group">
+                        <label for="registerUsername">Username</label>
+                        <input type="text" id="registerUsername" name="username" required minlength="3" maxlength="20" autocomplete="username">
+                        <div class="field-error" id="usernameError"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerEmail">Email</label>
+                        <input type="email" id="registerEmail" name="email" required autocomplete="email">
+                        <div class="field-error" id="emailError"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="registerPassword">Password</label>
+                        <input type="password" id="registerPassword" name="password" required minlength="6" autocomplete="new-password">
+                        <div class="password-strength">
+                            <div class="password-strength-bar" id="passwordStrengthBar"></div>
+                        </div>
+                        <div class="field-error" id="passwordError"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmPassword">Confirm Password</label>
+                        <input type="password" id="confirmPassword" name="confirmPassword" required autocomplete="new-password">
+                        <div class="field-error" id="confirmPasswordError"></div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <span id="registerBtnText">Create Account</span>
+                        <span id="registerLoader" class="loading hidden"></span>
+                    </button>
+                </form>
+                
+                <button id="toggleAuth" class="btn btn-secondary">
+                    <span id="toggleText">Need an account? Sign up</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Chat Section -->
+        <div id="chatSection" class="chat-container hidden">
+            <div class="chat-header">
+                <h1>🚀 Go Chat</h1>
+                <div class="user-section">
+                    <div class="welcome-text">
+                        Welcome, <span id="welcomeUsername"></span>!
+                    </div>
+                    <button id="logoutBtn" class="logout-btn">Logout</button>
+                </div>
+            </div>
+            
+            <div class="room-list">
+                <h3>📋 Chat Rooms</h3>
+                <div class="room-buttons" id="roomButtons">
+                    <!-- Rooms will be loaded dynamically -->
+                </div>
+            </div>
+
+            <div class="status connecting" id="status">
+                🔄 Connecting to server...
+            </div>
+
+            <div class="chat-messages" id="messages">
+                <!-- Messages will appear here -->
+            </div>
+
+            <div class="chat-input">
+                <input 
+                    type="text" 
+                    id="messageInput" 
+                    placeholder="Type your message..." 
+                    maxlength="500"
+                    disabled
+                >
+                <button id="sendBtn" disabled>Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class ChatApp {
+            constructor() {
+                this.ws = null;
+                this.currentRoom = '';
+                this.username = '';
+                this.token = '';
+                this.user = null;
+                this.isLoggedIn = false;
+                this.reconnectAttempts = 0;
+                this.maxReconnectAttempts = 5;
+                this.baseURL = 'http://localhost:8080/api';
+                
+                this.initializeElements();
+                this.attachEventListeners();
+                this.checkAuthStatus();
+            }
+
+            initializeElements() {
+                // Auth elements
+                this.authSection = document.getElementById('authSection');
+                this.chatSection = document.getElementById('chatSection');
+                this.loginForm = document.getElementById('loginForm');
+                this.registerForm = document.getElementById('registerForm');
+                this.toggleAuthBtn = document.getElementById('toggleAuth');
+                this.errorMessage = document.getElementById('errorMessage');
+                this.successMessage = document.getElementById('successMessage');
+                
+                // Chat elements
+                this.messagesContainer = document.getElementById('messages');
+                this.messageInput = document.getElementById('messageInput');
+                this.sendBtn = document.getElementById('sendBtn');
+                this.statusElement = document.getElementById('status');
+                this.roomButtons = document.getElementById('roomButtons');
+                this.welcomeUsername = document.getElementById('welcomeUsername');
+                this.logoutBtn = document.getElementById('logoutBtn');
+            }
+
+            attachEventListeners() {
+                // Auth event listeners
+                this.loginForm.addEventListener('submit', (e) => this.handleLogin(e));
+                this.registerForm.addEventListener('submit', (e) => this.handleRegister(e));
+                this.toggleAuthBtn.addEventListener('click', () => this.toggleAuthMode());
+                this.logoutBtn.addEventListener('click', () => this.handleLogout());
+                
+                // Real-time validation
+                this.setupRealTimeValidation();
+                
+                // Chat event listeners
+                this.messageInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.sendMessage();
+                    }
+                });
+                this.sendBtn.addEventListener('click', () => this.sendMessage());
+            }
+
+            setupRealTimeValidation() {
+                // Username validation for registration
+                const regUsername = document.getElementById('registerUsername');
+                const usernameError = document.getElementById('usernameError');
+                regUsername.addEventListener('input', () => {
+                    const username = regUsername.value.trim();
+                    if (username.length > 0 && username.length < 3) {
+                        this.showFieldError(regUsername, usernameError, 'Username must be at least 3 characters');
+                    } else if (username.length > 20) {
+                        this.showFieldError(regUsername, usernameError, 'Username must be 20 characters or less');
+                    } else if (username.length >= 3) {
+                        this.clearFieldError(regUsername, usernameError);
+                    }
+                });
+
+                // Email validation
+                const regEmail = document.getElementById('registerEmail');
+                const emailError = document.getElementById('emailError');
+                regEmail.addEventListener('input', () => {
+                    const email = regEmail.value.trim();
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (email.length > 0 && !emailRegex.test(email)) {
+                        this.showFieldError(regEmail, emailError, 'Please enter a valid email address');
+                    } else if (email.length > 0) {
+                        this.clearFieldError(regEmail, emailError);
+                    }
+                });
+
+                // Password validation
+                const regPassword = document.getElementById('registerPassword');
+                const passwordError = document.getElementById('passwordError');
+                const strengthBar = document.getElementById('passwordStrengthBar');
+                regPassword.addEventListener('input', () => {
+                    const password = regPassword.value;
+                    if (password.length > 0 && password.length < 6) {
+                        this.showFieldError(regPassword, passwordError, 'Password must be at least 6 characters');
+                        this.updatePasswordStrength(strengthBar, 0);
+                    } else if (password.length >= 6) {
+                        this.clearFieldError(regPassword, passwordError);
+                        const strength = this.calculatePasswordStrength(password);
+                        this.updatePasswordStrength(strengthBar, strength);
+                    } else {
+                        this.updatePasswordStrength(strengthBar, 0);
+                    }
+                });
+
+                // Confirm password validation
+                const confirmPassword = document.getElementById('confirmPassword');
+                const confirmPasswordError = document.getElementById('confirmPasswordError');
+                confirmPassword.addEventListener('input', () => {
+                    const password = regPassword.value;
+                    const confirm = confirmPassword.value;
+                    if (confirm.length > 0 && password !== confirm) {
+                        this.showFieldError(confirmPassword, confirmPasswordError, 'Passwords do not match');
+                    } else if (confirm.length > 0) {
+                        this.clearFieldError(confirmPassword, confirmPasswordError);
+                    }
+                });
+            }
+
+            showFieldError(input, errorElement, message) {
+                input.classList.add('error');
+                input.classList.remove('success');
+                errorElement.textContent = message;
+                errorElement.classList.add('show');
+            }
+
+            clearFieldError(input, errorElement) {
+                input.classList.remove('error');
+                input.classList.add('success');
+                errorElement.classList.remove('show');
+            }
+
+            clearAllFieldErrors() {
+                document.querySelectorAll('.form-group input').forEach(input => {
+                    input.classList.remove('error', 'success');
+                });
+                document.querySelectorAll('.field-error').forEach(error => {
+                    error.classList.remove('show');
+                });
+            }
+
+            calculatePasswordStrength(password) {
+                let strength = 0;
+                
+                // Length check
+                if (password.length >= 8) strength += 1;
+                if (password.length >= 12) strength += 1;
+                
+                // Character variety checks
+                if (/[a-z]/.test(password)) strength += 1;
+                if (/[A-Z]/.test(password)) strength += 1;
+                if (/[0-9]/.test(password)) strength += 1;
+                if (/[^A-Za-z0-9]/.test(password)) strength += 1;
+                
+                return Math.min(strength, 4); // Max 4
+            }
+
+            updatePasswordStrength(strengthBar, strength) {
+                // Remove all strength classes
+                strengthBar.classList.remove('strength-weak', 'strength-fair', 'strength-good', 'strength-strong');
+                
+                if (strength === 0) {
+                    strengthBar.style.width = '0%';
+                } else if (strength === 1) {
+                    strengthBar.classList.add('strength-weak');
+                } else if (strength === 2) {
+                    strengthBar.classList.add('strength-fair');
+                } else if (strength === 3) {
+                    strengthBar.classList.add('strength-good');
+                } else if (strength >= 4) {
+                    strengthBar.classList.add('strength-strong');
+                }
+            }
+
+            checkAuthStatus() {
+                const savedToken = localStorage.getItem('chat_token');
+                const savedUser = localStorage.getItem('chat_user');
+                
+                if (savedToken && savedUser) {
+                    this.token = savedToken;
+                    this.user = JSON.parse(savedUser);
+                    this.username = this.user.username;
+                    this.verifyToken();
+                }
+            }
+
+            async verifyToken() {
+                try {
+                    const response = await fetch(`${this.baseURL}/me`, {
+                        headers: {
+                            'Authorization': `Bearer ${this.token}`
+                        }
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.success) {
+                            this.user = data.user;
+                            this.username = this.user.username;
+                            this.showChatInterface();
+                            return;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Token verification failed:', error);
+                }
+                
+                // If verification fails, clear stored data
+                this.clearAuthData();
+            }
+
+            async handleLogin(e) {
+                e.preventDefault();
+                this.setLoading('login', true);
+                this.hideMessages();
+                this.clearAllFieldErrors();
+
+                const formData = new FormData(this.loginForm);
+                const loginData = {
+                    username: formData.get('username').trim(),
+                    password: formData.get('password')
+                };
+
+                // Basic validation
+                if (!loginData.username) {
+                    this.showFieldError(document.getElementById('loginUsername'), 
+                        document.getElementById('loginUsernameError'), 
+                        'Username is required');
+                    this.setLoading('login', false);
+                    return;
+                }
+
+                if (!loginData.password) {
+                    this.showFieldError(document.getElementById('loginPassword'), 
+                        document.getElementById('loginPasswordError'), 
+                        'Password is required');
+                    this.setLoading('login', false);
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`${this.baseURL}/auth/login`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(loginData)
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        this.token = data.token;
+                        this.user = data.user;
+                        this.username = this.user.username;
+                        
+                        // Save to localStorage
+                        localStorage.setItem('chat_token', this.token);
+                        localStorage.setItem('chat_user', JSON.stringify(this.user));
+                        
+                        this.showSuccessMessage(`Welcome back, ${this.username}! 🎉`);
+                        setTimeout(() => this.showChatInterface(), 1000);
+                    } else {
+                        this.showErrorMessage(data.message || 'Invalid username or password');
+                    }
+                } catch (error) {
+                    console.error('Login error:', error);
+                    this.showErrorMessage('Network error. Please check your connection and try again.');
+                } finally {
+                    this.setLoading('login', false);
+                }
+            }
+
+            async handleRegister(e) {
+                e.preventDefault();
+                this.setLoading('register', true);
+                this.hideMessages();
+                this.clearAllFieldErrors();
+
+                const formData = new FormData(this.registerForm);
+                const password = formData.get('password');
+                const confirmPassword = formData.get('confirmPassword');
+                const username = formData.get('username').trim();
+                const email = formData.get('email').trim();
+
+                // Client-side validation
+                let hasErrors = false;
+
+                if (username.length < 3 || username.length > 20) {
+                    this.showFieldError(document.getElementById('registerUsername'), 
+                        document.getElementById('usernameError'), 
+                        'Username must be 3-20 characters');
+                    hasErrors = true;
+                }
+
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    this.showFieldError(document.getElementById('registerEmail'), 
+                        document.getElementById('emailError'), 
+                        'Please enter a valid email address');
+                    hasErrors = true;
+                }
+
+                if (password.length < 6) {
+                    this.showFieldError(document.getElementById('registerPassword'), 
+                        document.getElementById('passwordError'), 
+                        'Password must be at least 6 characters');
+                    hasErrors = true;
+                }
+
+                if (password !== confirmPassword) {
+                    this.showFieldError(document.getElementById('confirmPassword'), 
+                        document.getElementById('confirmPasswordError'), 
+                        'Passwords do not match');
+                    hasErrors = true;
+                }
+
+                if (hasErrors) {
+                    this.setLoading('register', false);
+                    return;
+                }
+
+                const registerData = {
+                    username: username,
+                    email: email,
+                    password: password
+                };
+
+                try {
+                    const response = await fetch(`${this.baseURL}/auth/register`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(registerData)
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        this.token = data.token;
+                        this.user = data.user;
+                        this.username = this.user.username;
+                        
+                        // Save to localStorage
+                        localStorage.setItem('chat_token', this.token);
+                        localStorage.setItem('chat_user', JSON.stringify(this.user));
+                        
+                        this.showSuccessMessage('Account created successfully! Welcome to Go Chat! 🎉');
+                        setTimeout(() => this.showChatInterface(), 1500);
+                    } else {
+                        this.showErrorMessage(data.message || 'Registration failed');
+                    }
+                } catch (error) {
+                    console.error('Registration error:', error);
+                    this.showErrorMessage('Network error. Please check your connection and try again.');
+                } finally {
+                    this.setLoading('register', false);
+                }
+            }
+
+            async handleLogout() {
+                try {
+                    // Try to call the logout endpoint
+                    if (this.token) {
+                        await fetch(`${this.baseURL}/auth/logout`, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${this.token}`
+                            }
+                        });
+                    }
+                } catch (error) {
+                    console.log('Logout endpoint error:', error);
+                    // Continue with local logout even if server call fails
+                }
+                
+                this.clearAuthData();
+                this.disconnect();
+                this.showAuthInterface();
+                this.showSuccessMessage('Logged out successfully. Come back soon! 👋');
+            }
+
+            clearAuthData() {
+                this.token = '';
+                this.user = null;
+                this.username = '';
+                this.isLoggedIn = false;
+                localStorage.removeItem('chat_token');
+                localStorage.removeItem('chat_user');
+            }
+
+            toggleAuthMode() {
+                const isLoginMode = !this.loginForm.classList.contains('hidden');
+                
+                // Clear all forms and errors
+                this.loginForm.reset();
+                this.registerForm.reset();
+                this.hideMessages();
+                this.clearAllFieldErrors();
+                
+                if (isLoginMode) {
+                    // Switch to register mode
+                    this.loginForm.classList.add('hidden');
+                    this.registerForm.classList.remove('hidden');
+                    document.getElementById('authTitle').textContent = 'Create Your Account';
+                    document.getElementById('toggleText').textContent = 'Already have an account? Sign in';
+                } else {
+                    // Switch to login mode
+                    this.registerForm.classList.add('hidden');
+                    this.loginForm.classList.remove('hidden');
+                    document.getElementById('authTitle').textContent = 'Welcome Back';
+                    document.getElementById('toggleText').textContent = 'Need an account? Sign up';
+                }
+            }
+
+            showAuthInterface() {
+                this.authSection.classList.remove('hidden');
+                this.chatSection.classList.add('hidden');
+            }
+
+            showChatInterface() {
+                this.authSection.classList.add('hidden');
+                this.chatSection.classList.remove('hidden');
+                this.welcomeUsername.textContent = this.username;
+                this.isLoggedIn = true;
+                this.loadRooms();
+                this.connect();
+            }
+
+            setLoading(form, isLoading) {
+                const btnText = document.getElementById(`${form}BtnText`);
+                const loader = document.getElementById(`${form}Loader`);
+                const btn = document.querySelector(`#${form}Form button[type="submit"]`);
+                
+                if (isLoading) {
+                    btnText.classList.add('hidden');
+                    loader.classList.remove('hidden');
+                    btn.disabled = true;
+                } else {
+                    btnText.classList.remove('hidden');
+                    loader.classList.add('hidden');
+                    btn.disabled = false;
+                }
+            }
+
+            showErrorMessage(message) {
+                this.errorMessage.textContent = message;
+                this.errorMessage.classList.remove('hidden');
+                this.successMessage.classList.add('hidden');
+            }
+
+            showSuccessMessage(message) {
+                this.successMessage.textContent = message;
+                this.successMessage.classList.remove('hidden');
+                this.errorMessage.classList.add('hidden');
+            }
+
+            hideMessages() {
+                this.errorMessage.classList.add('hidden');
+                this.successMessage.classList.add('hidden');
+            }
+
+            async loadRooms() {
+                try {
+                    const response = await fetch(`${this.baseURL}/rooms`);
+                    const rooms = await response.json();
+                    
+                    this.roomButtons.innerHTML = '';
+                    
+                    if (rooms && rooms.length > 0) {
+                        rooms.forEach(room => {
+                            const button = document.createElement('button');
+                            button.className = 'room-button';
+                            button.textContent = room.name;
+                            button.onclick = () => this.joinRoom(room.id, room.name);
+                            this.roomButtons.appendChild(button);
+                        });
+                        
+                        // Join first room by default
+                        this.joinRoom(rooms[0].id, rooms[0].name);
+                    }
+                } catch (error) {
+                    console.error('Error loading rooms:', error);
+                }
+            }
+
+            connect() {
+                if (this.ws) {
+                    this.ws.close();
+                }
+
+                const wsUrl = `ws://localhost:8080/api/ws?username=${encodeURIComponent(this.username)}&room_id=${this.currentRoom}`;
+                this.ws = new WebSocket(wsUrl);
+
+                this.ws.onopen = () => {
+                    console.log('Connected to WebSocket');
+                    this.updateStatus('connected', '✅ Connected');
+                    this.messageInput.disabled = false;
+                    this.sendBtn.disabled = false;
+                    this.reconnectAttempts = 0;
+                };
+
+                this.ws.onmessage = (event) => {
+                    const message = JSON.parse(event.data);
+                    this.handleMessage(message);
+                };
+
+                this.ws.onclose = () => {
+                    console.log('WebSocket connection closed');
+                    this.updateStatus('disconnected', '❌ Disconnected');
+                    this.messageInput.disabled = true;
+                    this.sendBtn.disabled = true;
+                    
+                    // Attempt to reconnect
+                    if (this.isLoggedIn && this.reconnectAttempts < this.maxReconnectAttempts) {
+                        this.reconnectAttempts++;
+                        setTimeout(() => this.connect(), 3000);
+                    }
+                };
+
+                this.ws.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                    this.updateStatus('disconnected', '❌ Connection error');
+                };
+            }
+
+            disconnect() {
+                if (this.ws) {
+                    this.ws.close();
+                    this.ws = null;
+                }
+            }
+
+            joinRoom(roomId, roomName) {
+                this.currentRoom = roomId;
+                
+                // Update active room button
+                document.querySelectorAll('.room-button').forEach(btn => {
+                    btn.classList.remove('active');
+                    if (btn.textContent === roomName) {
+                        btn.classList.add('active');
+                    }
+                });
+                
+                // Clear messages and reconnect
+                this.messagesContainer.innerHTML = '';
+                this.connect();
+                
+                // Load room message history
+                this.loadRoomMessages(roomId);
+            }
+
+            async loadRoomMessages(roomId) {
+                try {
+                    const response = await fetch(`${this.baseURL}/rooms/${roomId}/messages`);
+                    const messages = await response.json();
+                    
+                    if (messages && messages.length > 0) {
+                        messages.forEach(message => {
+                            this.displayMessage(message);
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error loading room messages:', error);
+                }
+            }
+
+            sendMessage() {
+                const content = this.messageInput.value.trim();
+                if (!content || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
+                    return;
+                }
+
+                const message = {
+                    type: 'message',
+                    room_id: this.currentRoom,
+                    username: this.username,
+                    content: content
+                };
+
+                this.ws.send(JSON.stringify(message));
+                this.messageInput.value = '';
+            }
+
+            handleMessage(message) {
+                switch (message.type) {
+                    case 'message':
+                    case 'user_joined':
+                    case 'user_left':
+                        this.displayMessage(message);
+                        break;
+                    default:
+                        console.log('Unknown message type:', message);
+                }
+            }
+
+            displayMessage(message) {
+                const messageElement = document.createElement('div');
+                const isOwnMessage = message.username === this.username;
+                const isSystemMessage = message.type === 'user_joined' || message.type === 'user_left';
+                
+                if (isSystemMessage) {
+                    messageElement.className = 'message system';
+                    messageElement.innerHTML = `
+                        <div class="message-content">${message.content}</div>
+                        <div class="message-time">${this.formatTime(message.created_at || new Date())}</div>
+                    `;
+                } else {
+                    messageElement.className = `message ${isOwnMessage ? 'own' : 'other'}`;
+                    messageElement.innerHTML = `
+                        ${!isOwnMessage ? `<div class="message-username">${message.username}</div>` : ''}
+                        <div class="message-content">${this.escapeHtml(message.content)}</div>
+                        <div class="message-time">${this.formatTime(message.created_at || new Date())}</div>
+                    `;
+                }
+                
+                this.messagesContainer.appendChild(messageElement);
+                this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+            }
+
+            updateStatus(type, text) {
+                this.statusElement.className = `status ${type}`;
+                this.statusElement.textContent = text;
+            }
+
+            formatTime(timestamp) {
+                const date = new Date(timestamp);
+                return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            }
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+        }
+
+        // Initialize the chat app when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new ChatApp();
+        });
+    </script>
+</body>
+</html>

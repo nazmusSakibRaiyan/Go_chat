@@ -283,6 +283,20 @@ func (m *MongoDB) GetUserByUsername(username string) (*models.User, error) {
 	return &user, nil
 }
 
+// GetUserByEmail retrieves a user by email
+func (m *MongoDB) GetUserByEmail(email string) (*models.User, error) {
+	ctx := context.Background()
+	collection := m.Database.Collection("users")
+
+	var user models.User
+	err := collection.FindOne(ctx, bson.M{"email": email}).Decode(&user)
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
 // GetUserByID retrieves a user by ID
 func (m *MongoDB) GetUserByID(userID string) (*models.User, error) {
 	ctx := context.Background()

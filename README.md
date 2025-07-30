@@ -1,336 +1,242 @@
-# Go Chat Application with MongoDB
+# Go Chat Application
 
-A real-time chat application built with Go, WebSockets, and MongoDB. Features include real-time messaging, multiple chat rooms, persistent message history, and a clean web interface.
+A complete real-time chat application built with Go (backend) and vanilla JavaScript (frontend), featuring secure user authentication, WebSocket communication, and MongoDB for data persistence.
 
 ## 🚀 Features
 
-- **Real-time messaging** using WebSockets
-- **MongoDB integration** for persistent data storage
-- **Multiple chat rooms** with dynamic loading
-- **Message history** - see previous messages when joining rooms
-- **User management** with unique usernames
-- **Responsive web interface** - works on desktop and mobile
-- **Concurrent handling** using Go routines and channels
-- **RESTful API** for room and message management
-- **MongoDB Atlas support** - works with cloud databases
+- **🔐 User Authentication**: Secure registration and login with JWT tokens
+- **💬 Real-time Chat**: WebSocket-based instant messaging
+- **🛡️ Password Security**: Bcrypt hashing with strength validation
+- **⚡ Rate Limiting**: Protection against brute force attacks
+- **📱 Responsive UI**: Modern, mobile-friendly interface
+- **🗄️ MongoDB Integration**: Efficient data storage and retrieval
+- **🔍 API Testing**: Built-in API testing interface
+- **📚 Comprehensive Documentation**: Complete guides for development and deployment
 
-## 🏗️ Project Structure
+## 🛠️ Tech Stack
+
+**Backend:**
+- Go 1.19+ with Gin Web Framework
+- MongoDB with official Go driver
+- JWT authentication with 24-hour expiration
+- bcrypt password hashing (cost 14)
+- CORS middleware for cross-origin support
+- Rate limiting for security
+
+**Frontend:**
+- Vanilla JavaScript (ES6+) with Fetch API
+- WebSocket API for real-time communication
+- Modern CSS with animations and transitions
+- Responsive design for all devices
+- localStorage for session persistence
+- Multiple UI interfaces (chat, auth demo, API tester)
+
+## 📚 Documentation
+
+Comprehensive documentation is available in the [`docs/`](docs/) folder:
+
+- **[📖 Main Documentation](docs/README.md)** - Complete project overview and setup guide
+- **[🔗 API Documentation](docs/API.md)** - Detailed API endpoints and usage
+- **[🔐 Authentication Guide](docs/AUTHENTICATION.md)** - Security implementation details
+- **[🚀 Deployment Guide](docs/DEPLOYMENT.md)** - Production deployment instructions
+- **[🛠️ Development Guide](docs/DEVELOPMENT.md)** - Development setup and contributing
+
+## 📁 Project Structure
 
 ```
 Go_chat/
-├── README.md                 # Project documentation
-├── MONGODB_SETUP.md         # MongoDB setup guide
-├── .gitignore              # Git ignore rules
-├── setup.ps1               # Development setup script
+├── README.md                 # This file
+├── setup.ps1                # Quick setup script
+├── docker-compose.yml       # Docker deployment
+├── Dockerfile              # Container build
 │
-├── backend/                # Go backend server
+├── backend/                # Go backend application
 │   ├── main.go            # Application entry point
-│   ├── go.mod             # Go module dependencies
+│   ├── go.mod             # Go module definition
 │   ├── go.sum             # Dependency checksums
-│   ├── .env.example       # Environment variables template
-│   ├── build.ps1          # Build script (PowerShell)
-│   ├── build.sh           # Build script (Bash)
 │   │
-│   ├── auth/              # Authentication utilities
-│   │   └── auth.go        # Password hashing and validation
+│   ├── auth/              # Authentication system
+│   │   ├── auth.go        # JWT utilities
+│   │   ├── handlers.go    # Auth HTTP handlers
+│   │   ├── middleware.go  # Auth middleware
+│   │   └── ratelimit.go   # Rate limiting
 │   │
-│   ├── chat/              # WebSocket and chat logic
-│   │   └── chat.go        # Hub pattern and message handling
+│   ├── chat/              # Chat functionality
+│   │   └── chat.go        # WebSocket chat handlers
 │   │
 │   ├── config/            # Configuration management
-│   │   └── config.go      # Environment variables and settings
+│   │   └── config.go      # Application configuration
 │   │
-│   ├── db/                # Database operations
-│   │   └── database.go    # MongoDB connection and CRUD
+│   ├── db/                # Database layer
+│   │   └── database.go    # MongoDB connection
 │   │
-│   ├── models/            # Data structures
-│   │   └── models.go      # MongoDB models with BSON tags
+│   ├── models/            # Data models
+│   │   └── models.go      # User and message structures
 │   │
-│   └── utils/             # Helper functions
-│       └── utils.go       # String sanitization and utilities
+│   └── utils/             # Utility functions
+│       └── utils.go       # Helper functions
 │
-└── frontend/              # Web interface
-    ├── README.md          # Frontend documentation
-    ├── package.json       # Development dependencies
-    └── public/
-        └── index.html     # Complete chat application
+├── frontend/              # Frontend application
+│   ├── package.json       # Frontend dependencies
+│   ├── README.md          # Frontend documentation
+│   └── public/            # Static web files
+│       ├── index.html     # Main chat interface
+│       ├── index-auth.html # Full authentication demo
+│       ├── api-tester.html # API testing interface
+│       └── launcher.html   # Frontend navigation
+│
+└── docs/                  # Documentation
+    ├── README.md          # Main project documentation
+    ├── API.md             # API reference
+    ├── AUTHENTICATION.md  # Authentication guide
+    ├── DEPLOYMENT.md      # Deployment instructions
+    └── DEVELOPMENT.md     # Development guide
 ```
-
-## 🛠️ Prerequisites
-
-- **Go 1.21+** - [Download Go](https://golang.org/dl/)
-- **MongoDB** - Choose one option:
-  - **MongoDB Atlas** (Cloud) - [Sign up free](https://www.mongodb.com/atlas)
-  - **Local MongoDB** - [Download MongoDB](https://www.mongodb.com/try/download/community)
-  - **Docker** - `docker run -d -p 27017:27017 mongo:latest`
 
 ## ⚡ Quick Start
 
-### 1. Setup (Automated)
+### Prerequisites
 
-**Windows:**
-```powershell
-.\setup.ps1
-```
+- **Go 1.19+** - [Download Go](https://golang.org/dl/)
+- **MongoDB** - [MongoDB Atlas](https://www.mongodb.com/atlas) or local installation
+- **Git** - [Download Git](https://git-scm.com/downloads)
 
-**Manual Setup:**
-```bash
-# Clone repository
-git clone <your-repo-url>
-cd Go_chat
+### Installation
 
-# Setup backend
-cd backend
-go mod tidy
-cp .env.example .env
-# Edit .env with your MongoDB connection details
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/nazmusSakibRaiyan/Go_chat.git
+   cd Go_chat
+   ```
 
-# Optional: Setup frontend
-cd ../frontend
-npm install
-```
+2. **Setup backend**
+   ```bash
+   cd backend
+   go mod tidy
+   
+   # Set environment variables (or create .env file)
+   export MONGO_URI="mongodb://localhost:27017"
+   export MONGO_DB_NAME="go_chat"
+   export JWT_SECRET="your-secret-key"
+   export PORT="8080"
+   ```
 
-### 2. Configure Database
+3. **Run the application**
+   ```bash
+   # Start backend (from backend/ directory)
+   go run main.go
+   
+   # Start frontend server (from frontend/public/ directory)
+   python3 -m http.server 8000
+   # OR
+   npx serve -p 8000
+   ```
 
-Edit `backend/.env` with your MongoDB connection:
+4. **Access the application**
+   - Frontend: http://localhost:8000
+   - Backend API: http://localhost:8080/api
+   - Health Check: http://localhost:8080/health
 
-```env
-PORT=8080
-MONGODB_URI=mongodb+srv://your_username:your_password@your_cluster.mongodb.net/
-MONGODB_DATABASE=go_chat_db
-JWT_SECRET=your-secret-key-change-this-in-production
-```
+### Using VS Code Task
 
-⚠️ **Important:** Never commit your actual `.env` file to git. The `.env.example` file is a template showing what variables are needed.
-
-**For MongoDB Atlas:**
-- Use your Atlas connection string
-- Make sure to replace `username`, `password`, and `cluster` with your actual values
-
-**For Local MongoDB:**
-```env
-MONGODB_URI=mongodb://localhost:27017
-```
-
-### 3. Run the Application
+If you're using VS Code, you can use the built-in task:
 
 ```bash
-# Start the backend server
+# Start backend server
+Ctrl+Shift+P → "Tasks: Run Task" → "Start Backend Server"
+```
+
+## 🎮 Usage
+
+### User Registration & Login
+
+1. **Navigate to the application** at http://localhost:8000
+2. **Register a new account** with username, email, and password
+3. **Login** with your credentials
+4. **Start chatting** in real-time!
+
+### Multiple Interfaces
+
+- **Main Chat App** (`index.html`) - Full featured chat application
+- **Auth Demo** (`index-auth.html`) - Simple authentication demonstration
+- **API Tester** (`api-tester.html`) - Test API endpoints directly
+- **Launcher** (`launcher.html`) - Navigate between interfaces
+
+### API Testing
+
+The built-in API tester allows you to:
+- Test user registration and login
+- View user profiles
+- Test protected endpoints
+- Monitor API responses in real-time
+
+## 🔒 Security Features
+
+- **JWT Authentication**: Secure token-based authentication
+- **Password Hashing**: bcrypt with cost factor 14
+- **Rate Limiting**: Prevents brute force attacks
+- **Input Validation**: Server-side validation for all inputs
+- **CORS Configuration**: Secure cross-origin resource sharing
+- **Secure Headers**: Additional security headers in responses
+
+## 🐳 Docker Deployment
+
+```bash
+# Using Docker Compose
+docker-compose up -d
+
+# Manual Docker build
+docker build -t go-chat .
+docker run -p 8080:8080 go-chat
+```
+
+## 🧪 Testing
+
+```bash
+# Run backend tests
 cd backend
-go run main.go
+go test ./...
 
-# Or build and run
-.\build.ps1
-.\chat-server.exe
+# Run tests with coverage
+go test -cover ./...
 
-# Open frontend in browser
-# Navigate to: frontend/public/index.html
+# Run specific test package
+go test -v ./auth
 ```
-
-## 🎯 Usage
-
-### Starting a Chat Session
-
-1. **Open the frontend** in your web browser
-2. **Enter a username** (3-20 characters)
-3. **Click "Connect"** to join the chat
-4. **Choose a room** from the available options
-5. **Start chatting!** Messages are saved to MongoDB
-
-### Multiple Users
-
-- Open the application in **multiple browser tabs** with different usernames
-- Messages are delivered in **real-time** to all connected users
-- **Message history** is loaded when joining rooms
-
-## 📡 API Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/health` | Health check |
-| `GET` | `/api/ws` | WebSocket connection |
-| `GET` | `/api/rooms` | List all chat rooms |
-| `POST` | `/api/rooms` | Create a new room |
-| `GET` | `/api/rooms/:id/messages` | Get room message history |
-
-### WebSocket Message Format
-
-**Client → Server:**
-```json
-{
-  "type": "chat_message",
-  "content": "Hello, world!",
-  "room_id": "ObjectId"
-}
-```
-
-**Server → Client:**
-```json
-{
-  "type": "chat_message",
-  "username": "john_doe",
-  "content": "Hello, world!",
-  "room_id": "ObjectId"
-}
-```
-
-## 🗄️ Database Schema
-
-### Collections
-
-**Rooms Collection:**
-```javascript
-{
-  "_id": ObjectId,
-  "name": "general",
-  "description": "General chat room",
-  "created_at": ISODate,
-  "updated_at": ISODate
-}
-```
-
-**Messages Collection:**
-```javascript
-{
-  "_id": ObjectId,
-  "room_id": ObjectId,
-  "user_id": ObjectId, // optional
-  "username": "john_doe",
-  "content": "Hello world!",
-  "type": "text",
-  "created_at": ISODate
-}
-```
-
-**Users Collection:**
-```javascript
-{
-  "_id": ObjectId,
-  "username": "john_doe",
-  "email": "john@example.com",
-  "password_hash": "bcrypt_hash",
-  "created_at": ISODate,
-  "updated_at": ISODate
-}
-```
-
-## 🔧 Development
-
-### Project Structure
-
-- **Hub Pattern**: Manages WebSocket connections and message broadcasting
-- **Goroutines**: Each WebSocket connection runs in separate goroutines
-- **Channels**: Communication between goroutines for thread safety
-- **MongoDB Driver**: Official Go driver for MongoDB operations
-- **Gin Framework**: HTTP routing and middleware
-
-### Adding Features
-
-1. **New Message Types**: Add handlers in `chat/chat.go`
-2. **Database Models**: Update `models/models.go`
-3. **API Endpoints**: Add routes in `main.go`
-4. **Frontend Features**: Modify `frontend/public/index.html`
-
-### Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `PORT` | Server port | `8080` |
-| `MONGODB_URI` | MongoDB connection string | `mongodb://localhost:27017` |
-| `MONGODB_DATABASE` | Database name | `go_chat_db` |
-| `JWT_SECRET` | Secret for JWT tokens | `your-secret-key` |
-
-## 🚀 Deployment
-
-### Production Checklist
-
-- [ ] Change `JWT_SECRET` to a secure random value
-- [ ] Set `GIN_MODE=release` for production
-- [ ] Use MongoDB Atlas or secure MongoDB instance
-- [ ] Enable HTTPS/TLS
-- [ ] Set up proper CORS policies
-- [ ] Configure firewall rules
-- [ ] Set up monitoring and logging
-
-### Docker Deployment
-
-```dockerfile
-# Dockerfile
-FROM golang:1.21-alpine AS builder
-WORKDIR /app
-COPY . .
-RUN go mod tidy && go build -o chat-server main.go
-
-FROM alpine:latest
-RUN apk --no-cache add ca-certificates
-WORKDIR /root/
-COPY --from=builder /app/chat-server .
-COPY --from=builder /app/.env .
-CMD ["./chat-server"]
-```
-
-## 🛠️ Troubleshooting
-
-### Common Issues
-
-**Connection Failed:**
-- Check MongoDB connection string in `.env`
-- Verify MongoDB Atlas IP whitelist settings
-- Ensure MongoDB service is running (for local installations)
-
-**WebSocket Connection Failed:**
-- Check if port 8080 is available
-- Verify CORS settings allow your frontend domain
-- Check browser developer console for errors
-
-**Messages Not Persisting:**
-- Verify MongoDB connection is successful
-- Check server logs for database errors
-- Ensure proper database permissions
-
-### Logging
-
-The application logs important events:
-- MongoDB connection status
-- WebSocket connections/disconnections
-- Message broadcasting
-- API requests
-
-## 🔐 Security Features
-
-- **Password hashing** using bcrypt
-- **Input sanitization** for usernames and messages
-- **CORS protection** for API endpoints
-- **Connection validation** for WebSocket upgrades
-
-## 📈 Performance
-
-- **Automatic indexing** for optimized queries
-- **Connection pooling** via MongoDB driver
-- **Efficient message broadcasting** using Go channels
-- **Concurrent request handling** with Gin framework
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+We welcome contributions! Please see our [Development Guide](docs/DEVELOPMENT.md) for details on:
+
+- Setting up the development environment
+- Code style and conventions
+- Testing requirements
+- Pull request process
 
 ## 📄 License
 
-This project is open source and available under the [MIT License](LICENSE).
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🆘 Support
+
+For help and support:
+
+1. **Check the documentation** in the [`docs/`](docs/) folder
+2. **Review existing issues** on GitHub
+3. **Create a new issue** if you can't find a solution
+4. **Join our community discussions**
+
+## 🗂️ Key Documentation Links
+
+- **[Complete Setup Guide](docs/README.md)** - Detailed installation and configuration
+- **[API Reference](docs/API.md)** - All endpoints with examples
+- **[Authentication Guide](docs/AUTHENTICATION.md)** - Security implementation details
+- **[Deployment Guide](docs/DEPLOYMENT.md)** - Production deployment instructions
+- **[Development Guide](docs/DEVELOPMENT.md)** - Contributing and development workflow
 
 ---
 
-## 🎉 Success!
+**Built with ❤️ using Go and JavaScript**
 
-Your Go Chat Application with MongoDB is now ready! 
-
-- **Backend**: Connected to MongoDB Atlas ✅
-- **Frontend**: Dynamic room loading ✅
-- **Real-time**: WebSocket messaging ✅
-- **Persistence**: Message history in MongoDB ✅
-
-Start chatting and enjoy your new real-time chat application! 🚀
+**Last Updated**: July 30, 2025  
+**Version**: 2.0.0

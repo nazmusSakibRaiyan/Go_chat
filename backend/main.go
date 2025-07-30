@@ -1,6 +1,7 @@
 package main
 
 import (
+	"go-chat-backend/auth"
 	"go-chat-backend/chat"
 	"go-chat-backend/config"
 	"go-chat-backend/db"
@@ -33,25 +34,43 @@ func main() {
 	hub := chat.NewHub(mongoDB)
 	go hub.Run()
 
+	// Create auth handlers
+	authHandlers := auth.NewAuthHandlers(mongoDB, cfg.JWTSecret)
+
 	// Setup router
 	router := gin.Default()
 
 	// CORS middleware
 	corsConfig := cors.DefaultConfig()
-	corsConfig.AllowOrigins = []string{"http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:5500"}
-	corsConfig.AllowCredentials = true
+	corsConfig.AllowAllOrigins = true // Allow all origins for development (including file://)
 	corsConfig.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "Authorization"}
+	corsConfig.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
 	router.Use(cors.New(corsConfig))
 
 	// API routes
 	api := router.Group("/api")
 	{
-		// WebSocket endpoint
+		// Authentication routes (no auth required)
+		authRoutes := api.Group("/auth")
+		{
+			authRoutes.POST("/register", authHandlers.Register)
+			authRoutes.POST("/login", authHandlers.Login)
+			authRoutes.POST("/logout", authHandlers.Logout)
+		}
+
+		// Protected routes (auth required)
+		protected := api.Group("/")
+		protected.Use(auth.AuthMiddleware(authHandlers))
+		{
+			protected.GET("/me", authHandlers.Me)
+		}
+
+		// WebSocket endpoint (optional auth)
 		api.GET("/ws", func(c *gin.Context) {
 			chat.HandleWebSocket(hub, c.Writer, c.Request)
 		})
 
-		// REST API endpoints
+		// REST API endpoints (no auth required for now, but can be protected later)
 		api.GET("/rooms", func(c *gin.Context) {
 			chat.GetRooms(c, mongoDB)
 		})

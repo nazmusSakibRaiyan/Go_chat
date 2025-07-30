@@ -25,6 +25,8 @@ type Client struct {
 	send     chan []byte
 	username string
 	roomID   string
+	userID   string // Add user ID for authenticated users
+	isAuth   bool   // Track if user is authenticated
 }
 
 type Hub struct {

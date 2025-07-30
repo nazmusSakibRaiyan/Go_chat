@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Go Chat - Frontend Launcher</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 600px;
+            padding: 3rem;
+            text-align: center;
+        }
+
+        h1 {
+            color: #2d3748;
+            margin-bottom: 1rem;
+            font-size: 2.5rem;
+        }
+
+        .subtitle {
+            color: #4a5568;
+            margin-bottom: 3rem;
+            font-size: 1.2rem;
+        }
+
+        .options {
+            display: grid;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .option {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .option:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .option h3 {
+            margin-bottom: 0.5rem;
+            font-size: 1.3rem;
+        }
+
+        .option p {
+            opacity: 0.9;
+            font-size: 0.95rem;
+        }
+
+        .status {
+            background: #e6fffa;
+            border: 2px solid #81e6d9;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .status h4 {
+            color: #234e52;
+            margin-bottom: 0.5rem;
+        }
+
+        .status p {
+            color: #285e61;
+            font-size: 0.9rem;
+        }
+
+        .server-status {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.8rem;
+        }
+
+        .online {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .offline {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
+        .instructions {
+            background: #f7fafc;
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: left;
+            margin-top: 2rem;
+        }
+
+        .instructions h4 {
+            color: #2d3748;
+            margin-bottom: 1rem;
+        }
+
+        .instructions ol {
+            color: #4a5568;
+            padding-left: 1.5rem;
+        }
+
+        .instructions li {
+            margin-bottom: 0.5rem;
+        }
+
+        .code {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Go Chat</h1>
+        <p class="subtitle">Choose your interface to test the authentication system</p>
+        
+        <div class="status">
+            <h4>🌐 Server Status: <span id="serverStatus" class="server-status offline">Checking...</span></h4>
+            <p>Backend server must be running for authentication to work</p>
+        </div>
+
+        <div class="options">
+            <a href="http://localhost:8000/index-auth.html" class="option" target="_blank">
+                <h3>🔐 Full Chat Application</h3>
+                <p>Complete chat app with authentication, registration, and real-time messaging</p>
+            </a>
+
+            <a href="http://localhost:8000/auth-demo.html" class="option" target="_blank">
+                <h3>👤 Authentication Demo</h3>
+                <p>Simple demo focusing only on registration, login, and logout features</p>
+            </a>
+
+            <a href="http://localhost:8000/api-tester.html" class="option" target="_blank">
+                <h3>🧪 API Tester</h3>
+                <p>Technical interface to test all API endpoints and authentication flows</p>
+            </a>
+        </div>
+
+        <div class="instructions">
+            <h4>📋 Quick Setup Instructions:</h4>
+            <ol>
+                <li>Make sure the <span class="code">Go backend server</span> is running on port 8080</li>
+                <li>Start the frontend server with: <span class="code">python -m http.server 8000</span></li>
+                <li>Or use: <span class="code">npx serve -p 8000</span></li>
+                <li>Click any option above to test the authentication system</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        async function checkServerStatus() {
+            const statusElement = document.getElementById('serverStatus');
+            
+            try {
+                const response = await fetch('http://localhost:8080/health');
+                const data = await response.json();
+                
+                if (response.ok && data.status === 'ok') {
+                    statusElement.textContent = 'Online ✅';
+                    statusElement.className = 'server-status online';
+                } else {
+                    throw new Error('Server response not ok');
+                }
+            } catch (error) {
+                statusElement.textContent = 'Offline ❌';
+                statusElement.className = 'server-status offline';
+            }
+        }
+
+        // Check server status on load
+        checkServerStatus();
+
+        // Check server status every 5 seconds
+        setInterval(checkServerStatus, 5000);
+    </script>
+</body>
+</html>

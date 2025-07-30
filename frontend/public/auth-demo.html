@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Go Chat - Authentication Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 400px;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        h1 {
+            color: #2d3748;
+            margin-bottom: 2rem;
+            font-size: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #4a5568;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+
+        .btn-secondary:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .message {
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .error {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
+        .success {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .user-info {
+            background: #e6fffa;
+            border: 1px solid #81e6d9;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .user-info h3 {
+            color: #234e52;
+            margin-bottom: 0.5rem;
+        }
+
+        .user-info p {
+            color: #285e61;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Authentication Section -->
+        <div id="authSection">
+            <h1>🚀 Go Chat</h1>
+            
+            <div id="message" class="message hidden"></div>
+            
+            <!-- Login Form -->
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <button type="submit" class="btn">
+                    <span id="loginBtnText">Sign In</span>
+                    <span id="loginLoader" class="loading hidden"></span>
+                </button>
+            </form>
+            
+            <!-- Register Form -->
+            <form id="registerForm" class="hidden">
+                <div class="form-group">
+                    <label for="regUsername">Username</label>
+                    <input type="text" id="regUsername" name="username" required minlength="3" maxlength="20">
+                </div>
+                <div class="form-group">
+                    <label for="regEmail">Email</label>
+                    <input type="email" id="regEmail" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="regPassword">Password</label>
+                    <input type="password" id="regPassword" name="password" required minlength="6">
+                </div>
+                <div class="form-group">
+                    <label for="confirmPassword">Confirm Password</label>
+                    <input type="password" id="confirmPassword" name="confirmPassword" required>
+                </div>
+                <button type="submit" class="btn">
+                    <span id="registerBtnText">Create Account</span>
+                    <span id="registerLoader" class="loading hidden"></span>
+                </button>
+            </form>
+            
+            <button id="toggleAuth" class="btn btn-secondary">
+                <span id="toggleText">Need an account? Sign up</span>
+            </button>
+        </div>
+
+        <!-- User Dashboard -->
+        <div id="userSection" class="hidden">
+            <h1>Welcome! 🎉</h1>
+            
+            <div id="userInfo" class="user-info">
+                <h3>Your Profile</h3>
+                <p><strong>Username:</strong> <span id="displayUsername"></span></p>
+                <p><strong>Email:</strong> <span id="displayEmail"></span></p>
+                <p><strong>Member since:</strong> <span id="displayJoinDate"></span></p>
+            </div>
+            
+            <button id="logoutBtn" class="btn btn-secondary">Logout</button>
+        </div>
+    </div>
+
+    <script>
+        class AuthDemo {
+            constructor() {
+                this.baseURL = 'http://localhost:8080/api';
+                this.token = '';
+                this.user = null;
+                
+                this.initializeElements();
+                this.attachEventListeners();
+                this.checkAuthStatus();
+            }
+
+            initializeElements() {
+                this.authSection = document.getElementById('authSection');
+                this.userSection = document.getElementById('userSection');
+                this.loginForm = document.getElementById('loginForm');
+                this.registerForm = document.getElementById('registerForm');
+                this.toggleAuthBtn = document.getElementById('toggleAuth');
+                this.messageDiv = document.getElementById('message');
+                this.logoutBtn = document.getElementById('logoutBtn');
+                
+                // User display elements
+                this.displayUsername = document.getElementById('displayUsername');
+                this.displayEmail = document.getElementById('displayEmail');
+                this.displayJoinDate = document.getElementById('displayJoinDate');
+            }
+
+            attachEventListeners() {
+                this.loginForm.addEventListener('submit', (e) => this.handleLogin(e));
+                this.registerForm.addEventListener('submit', (e) => this.handleRegister(e));
+                this.toggleAuthBtn.addEventListener('click', () => this.toggleAuthMode());
+                this.logoutBtn.addEventListener('click', () => this.handleLogout());
+            }
+
+            checkAuthStatus() {
+                const savedToken = localStorage.getItem('chat_token');
+                const savedUser = localStorage.getItem('chat_user');
+                
+                if (savedToken && savedUser) {
+                    this.token = savedToken;
+                    this.user = JSON.parse(savedUser);
+                    this.verifyToken();
+                }
+            }
+
+            async verifyToken() {
+                try {
+                    const response = await fetch(`${this.baseURL}/me`, {
+                        headers: {
+                            'Authorization': `Bearer ${this.token}`
+                        }
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.success) {
+                            this.user = data.user;
+                            this.showUserSection();
+                            return;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Token verification failed:', error);
+                }
+                
+                this.clearAuthData();
+            }
+
+            async handleLogin(e) {
+                e.preventDefault();
+                this.setLoading('login', true);
+                this.hideMessage();
+
+                const formData = new FormData(this.loginForm);
+                const loginData = {
+                    username: formData.get('username'),
+                    password: formData.get('password')
+                };
+
+                try {
+                    const response = await fetch(`${this.baseURL}/auth/login`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(loginData)
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        this.token = data.token;
+                        this.user = data.user;
+                        
+                        localStorage.setItem('chat_token', this.token);
+                        localStorage.setItem('chat_user', JSON.stringify(this.user));
+                        
+                        this.showMessage(`Welcome back, ${this.user.username}! 🎉`, 'success');
+                        setTimeout(() => this.showUserSection(), 1000);
+                    } else {
+                        this.showMessage(data.message || 'Login failed', 'error');
+                    }
+                } catch (error) {
+                    console.error('Login error:', error);
+                    this.showMessage('Network error. Please try again.', 'error');
+                } finally {
+                    this.setLoading('login', false);
+                }
+            }
+
+            async handleRegister(e) {
+                e.preventDefault();
+                this.setLoading('register', true);
+                this.hideMessage();
+
+                const formData = new FormData(this.registerForm);
+                const password = formData.get('password');
+                const confirmPassword = formData.get('confirmPassword');
+
+                if (password !== confirmPassword) {
+                    this.showMessage('Passwords do not match', 'error');
+                    this.setLoading('register', false);
+                    return;
+                }
+
+                const registerData = {
+                    username: formData.get('username'),
+                    email: formData.get('email'),
+                    password: password
+                };
+
+                try {
+                    const response = await fetch(`${this.baseURL}/auth/register`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(registerData)
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        this.token = data.token;
+                        this.user = data.user;
+                        
+                        localStorage.setItem('chat_token', this.token);
+                        localStorage.setItem('chat_user', JSON.stringify(this.user));
+                        
+                        this.showMessage('Account created successfully! Welcome! 🎉', 'success');
+                        setTimeout(() => this.showUserSection(), 1000);
+                    } else {
+                        this.showMessage(data.message || 'Registration failed', 'error');
+                    }
+                } catch (error) {
+                    console.error('Registration error:', error);
+                    this.showMessage('Network error. Please try again.', 'error');
+                } finally {
+                    this.setLoading('register', false);
+                }
+            }
+
+            handleLogout() {
+                this.clearAuthData();
+                this.showAuthSection();
+                this.showMessage('Logged out successfully! 👋', 'success');
+            }
+
+            toggleAuthMode() {
+                const isLoginMode = !this.loginForm.classList.contains('hidden');
+                
+                this.loginForm.reset();
+                this.registerForm.reset();
+                this.hideMessage();
+                
+                if (isLoginMode) {
+                    this.loginForm.classList.add('hidden');
+                    this.registerForm.classList.remove('hidden');
+                    document.getElementById('toggleText').textContent = 'Already have an account? Sign in';
+                } else {
+                    this.registerForm.classList.add('hidden');
+                    this.loginForm.classList.remove('hidden');
+                    document.getElementById('toggleText').textContent = 'Need an account? Sign up';
+                }
+            }
+
+            showAuthSection() {
+                this.authSection.classList.remove('hidden');
+                this.userSection.classList.add('hidden');
+            }
+
+            showUserSection() {
+                this.authSection.classList.add('hidden');
+                this.userSection.classList.remove('hidden');
+                
+                // Update user display
+                this.displayUsername.textContent = this.user.username;
+                this.displayEmail.textContent = this.user.email;
+                
+                const joinDate = new Date(this.user.created_at);
+                this.displayJoinDate.textContent = joinDate.toLocaleDateString();
+            }
+
+            showMessage(text, type) {
+                this.messageDiv.textContent = text;
+                this.messageDiv.className = `message ${type}`;
+                this.messageDiv.classList.remove('hidden');
+            }
+
+            hideMessage() {
+                this.messageDiv.classList.add('hidden');
+            }
+
+            setLoading(form, isLoading) {
+                const btnText = document.getElementById(`${form}BtnText`);
+                const loader = document.getElementById(`${form}Loader`);
+                const btn = document.querySelector(`#${form}Form button[type="submit"]`);
+                
+                if (isLoading) {
+                    btnText.classList.add('hidden');
+                    loader.classList.remove('hidden');
+                    btn.disabled = true;
+                } else {
+                    btnText.classList.remove('hidden');
+                    loader.classList.add('hidden');
+                    btn.disabled = false;
+                }
+            }
+
+            clearAuthData() {
+                this.token = '';
+                this.user = null;
+                localStorage.removeItem('chat_token');
+                localStorage.removeItem('chat_user');
+            }
+        }
+
+        // Initialize the app
+        new AuthDemo();
+    </script>
+</body>
+</html>

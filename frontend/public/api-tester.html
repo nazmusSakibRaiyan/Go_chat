@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication API Tester</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            color: #2d3748;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background: #f7fafc;
+        }
+
+        .test-section h3 {
+            color: #4a5568;
+            margin-bottom: 15px;
+        }
+
+        .test-form {
+            display: grid;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .test-form input, .test-form textarea {
+            padding: 10px;
+            border: 1px solid #cbd5e0;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .test-form button {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .test-form button:hover {
+            background: #5a67d8;
+        }
+
+        .test-form button:disabled {
+            background: #a0aec0;
+            cursor: not-allowed;
+        }
+
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .result.success {
+            background: #c6f6d5;
+            border: 1px solid #68d391;
+            color: #22543d;
+        }
+
+        .result.error {
+            background: #fed7d7;
+            border: 1px solid #fc8181;
+            color: #c53030;
+        }
+
+        .result.info {
+            background: #bee3f8;
+            border: 1px solid #63b3ed;
+            color: #2a69ac;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .status.online {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .status.offline {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
+        .token-display {
+            background: #edf2f7;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            word-break: break-all;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Authentication API Tester</h1>
+        
+        <!-- Server Status -->
+        <div class="test-section">
+            <h3>🌐 Server Status <span id="serverStatus" class="status offline">Checking...</span></h3>
+            <button onclick="checkServerStatus()">Check Server</button>
+            <div id="statusResult" class="result info" style="display: none;"></div>
+        </div>
+
+        <!-- Registration Test -->
+        <div class="test-section">
+            <h3>👤 User Registration</h3>
+            <div class="test-form">
+                <input type="text" id="regUsername" placeholder="Username" value="testuser123">
+                <input type="email" id="regEmail" placeholder="Email" value="test@example.com">
+                <input type="password" id="regPassword" placeholder="Password" value="password123">
+                <button onclick="testRegister()">Test Registration</button>
+            </div>
+            <div id="registerResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Login Test -->
+        <div class="test-section">
+            <h3>🔐 User Login</h3>
+            <div class="test-form">
+                <input type="text" id="loginUsername" placeholder="Username" value="testuser123">
+                <input type="password" id="loginPassword" placeholder="Password" value="password123">
+                <button onclick="testLogin()">Test Login</button>
+            </div>
+            <div id="loginResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Current Token -->
+        <div class="test-section">
+            <h3>🎫 Current JWT Token</h3>
+            <div id="currentToken" class="token-display">No token available</div>
+            <button onclick="clearToken()">Clear Token</button>
+        </div>
+
+        <!-- Protected Endpoint Test -->
+        <div class="test-section">
+            <h3>🔒 Protected Endpoint (/api/me)</h3>
+            <button onclick="testMe()">Test /api/me</button>
+            <div id="meResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Logout Test -->
+        <div class="test-section">
+            <h3>👋 User Logout</h3>
+            <button onclick="testLogout()">Test Logout</button>
+            <div id="logoutResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Rate Limiting Test -->
+        <div class="test-section">
+            <h3>⏱️ Rate Limiting Test</h3>
+            <p>This will attempt multiple failed logins to test rate limiting:</p>
+            <button onclick="testRateLimit()">Test Rate Limiting</button>
+            <div id="rateLimitResult" class="result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/api';
+        let currentToken = localStorage.getItem('chat_token') || '';
+
+        // Update token display on load
+        updateTokenDisplay();
+
+        async function checkServerStatus() {
+            const result = document.getElementById('statusResult');
+            const status = document.getElementById('serverStatus');
+            
+            result.style.display = 'block';
+            result.textContent = 'Checking server...';
+            result.className = 'result info';
+            
+            try {
+                const response = await fetch(`${API_BASE.replace('/api', '')}/health`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    status.textContent = 'Online';
+                    status.className = 'status online';
+                    result.textContent = `✅ Server is online!\nStatus: ${data.status}`;
+                    result.className = 'result success';
+                } else {
+                    throw new Error('Server returned error');
+                }
+            } catch (error) {
+                status.textContent = 'Offline';
+                status.className = 'status offline';
+                result.textContent = `❌ Server is offline or unreachable\nError: ${error.message}`;
+                result.className = 'result error';
+            }
+        }
+
+        async function testRegister() {
+            const result = document.getElementById('registerResult');
+            const username = document.getElementById('regUsername').value;
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPassword').value;
+
+            result.style.display = 'block';
+            result.textContent = 'Testing registration...';
+            result.className = 'result info';
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, email, password })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentToken = data.token;
+                    localStorage.setItem('chat_token', currentToken);
+                    updateTokenDisplay();
+                    result.textContent = `✅ Registration successful!\n\nResponse:\n${JSON.stringify(data, null, 2)}`;
+                    result.className = 'result success';
+                } else {
+                    result.textContent = `❌ Registration failed!\n\nResponse:\n${JSON.stringify(data, null, 2)}`;
+                    result.className = 'result error';
+                }
+            } catch (error) {
+                result.textContent = `❌ Network error!\nError: ${error.message}`;
+                result.className = 'result error';
+            }
+        }
+
+        async function testLogin() {
+            const result = document.getElementById('loginResult');
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+
+            result.style.display = 'block';
+            result.textContent = 'Testing login...';
+            result.className = 'result info';
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentToken = data.token;
+                    localStorage.setItem('chat_token', currentToken);
+                    updateTokenDisplay();
+                    result.textContent = `✅ Login successful!\n\nResponse:\n${JSON.stringify(data, null, 2)}`;
+                    result.className = 'result success';
+                } else {
+                    result.textContent = `❌ Login failed!\n\nResponse:\n${JSON.stringify(data, null, 2)}`;
+                    result.className = 'result error';
+                }
+            } catch (error) {
+                result.textContent = `❌ Network error!\nError: ${error.message}`;
+                result.className = 'result error';
+            }
+        }
+
+        async function testMe() {
+            const result = document.getElementById('meResult');
+
+            result.style.display = 'block';
+            result.textContent = 'Testing protected endpoint...';
+            result.className = 'result info';
+
+            if (!currentToken) {
+                result.textContent = '❌ No token available! Please login first.';
+                result.className = 'result error';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    result.textContent = `✅ Protected endpoint access successful!\n\nResponse:\n${JSON.stringify(data, null, 2)}`;
+                    result.className = 'result success';
+                } else {
+                    result.textContent = `❌ Protected endpoint access failed!\n\nResponse:\n${JSON.stringify(data, null, 2)}`;
+                    result.className = 'result error';
+                }
+            } catch (error) {
+                result.textContent = `❌ Network error!\nError: ${error.message}`;
+                result.className = 'result error';
+            }
+        }
+
+        async function testLogout() {
+            const result = document.getElementById('logoutResult');
+
+            result.style.display = 'block';
+            result.textContent = 'Testing logout...';
+            result.className = 'result info';
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/logout`, {
+                    method: 'POST',
+                    headers: currentToken ? {
+                        'Authorization': `Bearer ${currentToken}`
+                    } : {}
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    result.textContent = `✅ Logout successful!\n\nResponse:\n${JSON.stringify(data, null, 2)}`;
+                    result.className = 'result success';
+                } else {
+                    result.textContent = `❌ Logout failed!\n\nResponse:\n${JSON.stringify(data, null, 2)}`;
+                    result.className = 'result error';
+                }
+            } catch (error) {
+                result.textContent = `❌ Network error!\nError: ${error.message}`;
+                result.className = 'result error';
+            }
+        }
+
+        async function testRateLimit() {
+            const result = document.getElementById('rateLimitResult');
+            result.style.display = 'block';
+            result.textContent = 'Testing rate limiting (this may take a while)...\n';
+            result.className = 'result info';
+
+            const attempts = 7; // More than the 5 attempt limit
+            let results = [];
+
+            for (let i = 1; i <= attempts; i++) {
+                try {
+                    const response = await fetch(`${API_BASE}/auth/login`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ 
+                            username: 'invaliduser', 
+                            password: 'invalidpass' 
+                        })
+                    });
+
+                    const data = await response.json();
+                    results.push(`Attempt ${i}: ${response.status} - ${data.message}`);
+                    
+                    // Update result in real-time
+                    result.textContent = `Testing rate limiting...\n\n${results.join('\n')}`;
+                    
+                    // Check if we got rate limited
+                    if (response.status === 429) {
+                        result.textContent += `\n\n✅ Rate limiting is working! Got 429 status after ${i} attempts.`;
+                        result.className = 'result success';
+                        return;
+                    }
+                    
+                    // Small delay between requests
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    
+                } catch (error) {
+                    results.push(`Attempt ${i}: Error - ${error.message}`);
+                    result.textContent = `Testing rate limiting...\n\n${results.join('\n')}`;
+                }
+            }
+
+            result.textContent += '\n\n❓ Rate limiting test completed. Check if 429 status was returned.';
+            result.className = 'result info';
+        }
+
+        function clearToken() {
+            currentToken = '';
+            localStorage.removeItem('chat_token');
+            updateTokenDisplay();
+        }
+
+        function updateTokenDisplay() {
+            const tokenDisplay = document.getElementById('currentToken');
+            if (currentToken) {
+                tokenDisplay.textContent = currentToken;
+            } else {
+                tokenDisplay.textContent = 'No token available';
+            }
+        }
+
+        // Check server status on load
+        checkServerStatus();
+    </script>
+</body>
+</html>
