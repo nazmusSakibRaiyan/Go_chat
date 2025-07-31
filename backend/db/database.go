@@ -315,3 +315,25 @@ func (m *MongoDB) GetUserByID(userID string) (*models.User, error) {
 
 	return &user, nil
 }
+
+// UpdateUserProfile updates a user's display name
+func (m *MongoDB) UpdateUserProfile(userID string, displayName string) error {
+	ctx := context.Background()
+	collection := m.Database.Collection("users")
+
+	objectID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return err
+	}
+
+	// Update the user's display name and updated_at timestamp
+	update := bson.M{
+		"$set": bson.M{
+			"display_name": displayName,
+			"updated_at":   time.Now(),
+		},
+	}
+
+	_, err = collection.UpdateOne(ctx, bson.M{"_id": objectID}, update)
+	return err
+}

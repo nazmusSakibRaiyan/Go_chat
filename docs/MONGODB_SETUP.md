@@ -79,8 +79,8 @@ The application will create:
 Update your `.env` file:
 ```
 PORT=8080
-MONGODB_URI=mongodb://localhost:27017
-MONGODB_DATABASE=go_chat_db
+
+
 JWT_SECRET=your-secret-key-change-this-in-production
 ```
 

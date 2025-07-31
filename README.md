@@ -1,11 +1,14 @@
-# Go Chat Application
+# Go C- **🔐 User Authentication**: Secure registration and login with JWT tokens
+- **👤 Profile Management**: Update display names with real-time validation
+- **💬 Real-time Chat**: WebSocket-based instant messaging with JWT authentication Application
 
 A complete real-time chat application built with Go (backend) and vanilla JavaScript (frontend), featuring secure user authentication, WebSocket communication, and MongoDB for data persistence.
 
 ## 🚀 Features
 
 - **🔐 User Authentication**: Secure registration and login with JWT tokens
-- **💬 Real-time Chat**: WebSocket-based instant messaging
+- **� Profile Management**: Update display names with real-time validation
+- **�💬 Real-time Chat**: WebSocket-based instant messaging with JWT authentication
 - **🛡️ Password Security**: Bcrypt hashing with strength validation
 - **⚡ Rate Limiting**: Protection against brute force attacks
 - **📱 Responsive UI**: Modern, mobile-friendly interface
@@ -37,9 +40,11 @@ Comprehensive documentation is available in the [`docs/`](docs/) folder:
 
 - **[📖 Main Documentation](docs/README.md)** - Complete project overview and setup guide
 - **[🔗 API Documentation](docs/API.md)** - Detailed API endpoints and usage
-- **[🔐 Authentication Guide](docs/AUTHENTICATION.md)** - Security implementation details
-- **[🚀 Deployment Guide](docs/DEPLOYMENT.md)** - Production deployment instructions
-- **[🛠️ Development Guide](docs/DEVELOPMENT.md)** - Development setup and contributing
+- **[🔐 Authentication Guide](docs/AUTHENTICATION.md)** - JWT authentication implementation
+- **[👤 Profile Feature](docs/PROFILE_FEATURE.md)** - Update profile functionality
+- **[🐳 Deployment Guide](docs/DEPLOYMENT.md)** - Production deployment instructions
+- **[⚙️ Development Guide](docs/DEVELOPMENT.md)** - Development setup and guidelines
+- **[📊 MongoDB Setup](docs/MONGODB_SETUP.md)** - Database configuration guide
 
 ## 📁 Project Structure
 
@@ -114,12 +119,7 @@ Go_chat/
    cd backend
    go mod tidy
    
-   # Set environment variables (or create .env file)
-   export MONGO_URI="mongodb://localhost:27017"
-   export MONGO_DB_NAME="go_chat"
-   export JWT_SECRET="your-secret-key"
-   export PORT="8080"
-   ```
+
 
 3. **Run the application**
    ```bash
@@ -204,6 +204,20 @@ go test -cover ./...
 go test -v ./auth
 ```
 
+## 🆕 Recent Updates
+
+### Version 2.1.0 - Latest Features
+- ✅ **Profile Management**: Users can now update their display names
+- ✅ **Enhanced Authentication**: Improved JWT token handling across all pages  
+- ✅ **Better Navigation**: Streamlined UI with consistent navigation links
+- ✅ **Comprehensive Documentation**: Organized documentation in `docs/` folder
+
+### Version 2.0.0 - Major Release
+- ✅ **JWT Authentication**: Secure token-based authentication system
+- ✅ **Real-time Chat**: WebSocket integration with authentication
+- ✅ **MongoDB Integration**: Production-ready database setup
+- ✅ **Rate Limiting**: Protection against brute force attacks
+
 ## 🤝 Contributing
 
 We welcome contributions! Please see our [Development Guide](docs/DEVELOPMENT.md) for details on:
@@ -231,6 +245,7 @@ For help and support:
 - **[Complete Setup Guide](docs/README.md)** - Detailed installation and configuration
 - **[API Reference](docs/API.md)** - All endpoints with examples
 - **[Authentication Guide](docs/AUTHENTICATION.md)** - Security implementation details
+- **[Profile Feature Guide](docs/PROFILE_FEATURE.md)** - Update profile functionality
 - **[Deployment Guide](docs/DEPLOYMENT.md)** - Production deployment instructions
 - **[Development Guide](docs/DEVELOPMENT.md)** - Contributing and development workflow
 
@@ -238,5 +253,5 @@ For help and support:
 
 **Built with ❤️ using Go and JavaScript**
 
-**Last Updated**: July 30, 2025  
-**Version**: 2.0.0
+**Last Updated**: January 2025  
+**Version**: 2.1.0

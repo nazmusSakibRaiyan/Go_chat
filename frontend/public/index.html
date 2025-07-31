@@ -37,10 +37,67 @@
             color: white;
             padding: 1rem;
             text-align: center;
+            position: relative;
         }
 
         .chat-header h1 {
             margin: 0;
+        }
+
+        .user-profile {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 0.9em;
+        }
+
+        .user-profile .display-name {
+            font-weight: 500;
+        }
+
+        .user-profile .profile-link {
+            color: #cbd5e0;
+            text-decoration: none;
+            margin-right: 1rem;
+            font-size: 0.8em;
+        }
+
+        .user-profile .profile-link:hover {
+            color: #e2e8f0;
+            text-decoration: underline;
+        }
+
+        .logout-btn {
+            background: #e53e3e;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+
+        .logout-btn:hover {
+            background: #c53030;
+        }
+
+        .auth-required {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+
+        .auth-required a {
+            color: #4299e1;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .auth-required a:hover {
+            text-decoration: underline;
         }
 
         .user-info {
@@ -208,9 +265,13 @@
     </style>
 </head>
 <body>
-    <div class="chat-container">
+    <div class="chat-container" id="chatContainer" style="display: none;">
         <div class="chat-header">
             <h1>Go Chat App</h1>
+            <div class="user-profile" id="userProfile">
+                <span class="display-name" id="displayName">Loading...</span>
+                <button class="logout-btn" onclick="logout()">Logout</button>
+            </div>
             <div class="user-info">
                 <input type="text" id="usernameInput" placeholder="Enter your username" maxlength="20">
                 <button id="connectBtn">Connect</button>
@@ -238,6 +299,18 @@
         <div class="chat-input">
             <input type="text" id="messageInput" placeholder="Type your message..." disabled>
             <button id="sendBtn" disabled>Send</button>
+        </div>
+    </div>
+
+    <!-- Authentication Required Message -->
+    <div class="chat-container auth-required" id="authRequired">
+        <h2>🔒 Authentication Required</h2>
+        <p>Please log in to access the chat application.</p>
+        <div style="margin-top: 1rem;">
+            <a href="auth-demo.html">🔐 Login / Register</a>
+        </div>
+        <div style="margin-top: 1rem; font-size: 0.9em; color: #666;">
+            <p>After logging in, you'll be redirected back to this chat interface automatically.</p>
         </div>
     </div>
 
@@ -339,7 +412,10 @@
                 }
 
                 this.username = username;
-                const wsUrl = `ws://localhost:8080/api/ws?username=${encodeURIComponent(username)}&room_id=${this.currentRoomId}`;
+                
+                // Include JWT token in WebSocket connection
+                const token = localStorage.getItem('authToken');
+                const wsUrl = `ws://localhost:8080/api/ws?username=${encodeURIComponent(username)}&room_id=${this.currentRoomId}&token=${encodeURIComponent(token || '')}`;
                 
                 try {
                     this.websocket = new WebSocket(wsUrl);
@@ -523,8 +599,84 @@
             }
         }
 
-        // Initialize the chat app
-        const chatApp = new ChatApp();
+        // Authentication and User Management
+        const API_BASE = 'http://localhost:8080/api';
+        let currentUser = null;
+        let authToken = localStorage.getItem('authToken');
+
+        // Check authentication on page load
+        window.onload = async function() {
+            if (authToken) {
+                try {
+                    const response = await fetch(`${API_BASE}/me`, {
+                        headers: {
+                            'Authorization': `Bearer ${authToken}`
+                        }
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.success) {
+                            currentUser = data.user;
+                            showChatInterface();
+                            return;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Auth verification failed:', error);
+                }
+            }
+            
+            // Show auth required if no valid token
+            showAuthRequired();
+        };
+
+        function showChatInterface() {
+            document.getElementById('authRequired').style.display = 'none';
+            document.getElementById('chatContainer').style.display = 'flex';
+            
+            // Update user profile display
+            const displayNameElement = document.getElementById('displayName');
+            const displayName = currentUser.display_name || currentUser.username;
+            displayNameElement.textContent = displayName;
+            
+            // Auto-fill username
+            document.getElementById('usernameInput').value = currentUser.username;
+            
+            // Initialize chat app
+            const chatApp = new ChatApp();
+        }
+
+        function showAuthRequired() {
+            document.getElementById('chatContainer').style.display = 'none';
+            document.getElementById('authRequired').style.display = 'flex';
+        }
+
+        function logout() {
+            // Call logout endpoint before clearing data
+            if (authToken) {
+                fetch(`${API_BASE}/auth/logout`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                }).catch(error => console.error('Logout error:', error));
+            }
+            
+            // Clear authentication data
+            authToken = null;
+            currentUser = null;
+            localStorage.removeItem('authToken');
+            
+            // Show auth required screen
+            showAuthRequired();
+            
+            // Optional: redirect to auth page
+            // window.location.href = 'auth-demo.html';
+        }
+
+        // Initialize the chat app only after authentication
+        // const chatApp = new ChatApp(); // Moved to showChatInterface()
     </script>
 </body>
 </html>

@@ -205,6 +205,10 @@
             <button id="toggleAuth" class="btn btn-secondary">
                 <span id="toggleText">Need an account? Sign up</span>
             </button>
+            
+            <div style="margin-top: 15px;">
+                <a href="index.html" style="color: #667eea; text-decoration: none; font-weight: 500;">← Back to Chat</a>
+            </div>
         </div>
 
         <!-- User Dashboard -->
@@ -219,6 +223,12 @@
             </div>
             
             <button id="logoutBtn" class="btn btn-secondary">Logout</button>
+            
+            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+                <p style="color: #666; font-size: 14px; margin-bottom: 10px;">Navigation:</p>
+                <a href="index.html" style="color: #667eea; text-decoration: none; font-weight: 500; margin-right: 15px;">← Back to Chat</a>
+                <a href="profile-demo.html" style="color: #667eea; text-decoration: none; font-weight: 500;">Change display name</a>
+            </div>
         </div>
     </div>
 
@@ -257,7 +267,7 @@
             }
 
             checkAuthStatus() {
-                const savedToken = localStorage.getItem('chat_token');
+                const savedToken = localStorage.getItem('authToken');
                 const savedUser = localStorage.getItem('chat_user');
                 
                 if (savedToken && savedUser) {
@@ -316,7 +326,7 @@
                         this.token = data.token;
                         this.user = data.user;
                         
-                        localStorage.setItem('chat_token', this.token);
+                        localStorage.setItem('authToken', this.token);
                         localStorage.setItem('chat_user', JSON.stringify(this.user));
                         
                         this.showMessage(`Welcome back, ${this.user.username}! 🎉`, 'success');
@@ -368,7 +378,7 @@
                         this.token = data.token;
                         this.user = data.user;
                         
-                        localStorage.setItem('chat_token', this.token);
+                        localStorage.setItem('authToken', this.token);
                         localStorage.setItem('chat_user', JSON.stringify(this.user));
                         
                         this.showMessage('Account created successfully! Welcome! 🎉', 'success');
@@ -454,7 +464,7 @@
             clearAuthData() {
                 this.token = '';
                 this.user = null;
-                localStorage.removeItem('chat_token');
+                localStorage.removeItem('authToken');
                 localStorage.removeItem('chat_user');
             }
         }

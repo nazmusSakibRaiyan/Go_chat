@@ -172,6 +172,7 @@ Authorization: Bearer <token> (required)
     "id": "507f1f77bcf86cd799439011",
     "username": "johndoe",
     "email": "john@example.com",
+    "display_name": "John Doe",
     "created_at": "2025-07-30T10:00:00Z",
     "updated_at": "2025-07-30T10:00:00Z"
   }
@@ -186,6 +187,59 @@ Authorization: Bearer <token> (required)
 ```bash
 curl -X GET http://localhost:8080/api/me \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+### Update User Profile
+
+**PUT** `/profile` 🔒
+
+Update current user's profile information.
+
+**Headers:**
+```
+Authorization: Bearer <token> (required)
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+{
+  "display_name": "string (3-50 chars, optional)"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Profile updated successfully",
+  "user": {
+    "id": "507f1f77bcf86cd799439011",
+    "username": "johndoe",
+    "email": "john@example.com",
+    "display_name": "John Doe",
+    "created_at": "2025-07-30T10:00:00Z",
+    "updated_at": "2025-07-30T12:30:00Z"
+  }
+}
+```
+
+**Error Responses:**
+- `400 Bad Request` - Invalid display name (too short, too long, or empty)
+- `401 Unauthorized` - Invalid or missing token
+- `500 Internal Server Error` - Server error
+
+**Validation Rules:**
+- Display name must be 3-50 characters long
+- Display name cannot be only whitespace
+- Special characters are allowed
+
+**Example:**
+```bash
+curl -X PUT http://localhost:8080/api/profile \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Content-Type: application/json" \
+  -d '{"display_name": "John Doe"}'
 ```
 
 ## 💬 Chat Room Endpoints

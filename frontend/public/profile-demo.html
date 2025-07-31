@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile Update Demo - Go Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e1e5e9;
+            border-radius: 10px;
+            background: #f8f9fa;
+        }
+
+        .section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .user-info {
+            background: #e8f5e8;
+            border: 1px solid #c3e6c3;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .user-info h4 {
+            color: #2d5a2d;
+            margin-bottom: 10px;
+        }
+
+        .user-info p {
+            color: #4a6b4a;
+            margin: 5px 0;
+        }
+
+        .message {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        .message.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .message.info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+
+        .links {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .links a {
+            color: #667eea;
+            text-decoration: none;
+            margin: 0 10px;
+            font-weight: 500;
+        }
+
+        .links a:hover {
+            text-decoration: underline;
+        }
+
+        .status {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .status.logged-out {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+
+        .status.logged-in {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 Profile Update Demo</h1>
+            <p>Test the Update Profile feature</p>
+        </div>
+
+        <div id="status" class="status logged-out">
+            Please login first to test profile updates
+        </div>
+
+        <!-- Login Section -->
+        <div class="section" id="loginSection">
+            <h3>🔐 Login</h3>
+            <div class="form-group">
+                <label for="loginUsername">Username:</label>
+                <input type="text" id="loginUsername" placeholder="Enter your username">
+            </div>
+            <div class="form-group">
+                <label for="loginPassword">Password:</label>
+                <input type="password" id="loginPassword" placeholder="Enter your password">
+            </div>
+            <button class="btn" onclick="login()">Login</button>
+            
+            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e1e5e9;">
+                <p style="color: #666; font-size: 14px; margin-bottom: 10px;">Need a test account?</p>
+                <button class="btn" onclick="quickRegister()" style="background: #28a745;">Create Test Account</button>
+            </div>
+        </div>
+
+        <!-- Current User Info -->
+        <div class="section" id="userInfoSection" style="display: none;">
+            <h3>👤 Current User Info</h3>
+            <div class="user-info" id="userInfo">
+                <!-- User info will be populated here -->
+            </div>
+        </div>
+
+        <!-- Update Profile Section -->
+        <div class="section" id="updateProfileSection" style="display: none;">
+            <h3>✏️ Update Profile</h3>
+            <div id="message" class="message"></div>
+            <div class="form-group">
+                <label for="displayName">Display Name:</label>
+                <input type="text" id="displayName" placeholder="Enter your new display name" maxlength="50">
+                <small style="color: #666; font-size: 14px;">This is how others will see your name in chat (1-50 characters)</small>
+            </div>
+            <button class="btn" onclick="updateProfile()" id="updateBtn">Update Profile</button>
+        </div>
+
+        <div class="links">
+            <a href="index.html">← Back to Chat</a>
+            <a href="api-tester.html">API Tester</a>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/api';
+        let authToken = localStorage.getItem('authToken');
+        let currentUser = null;
+
+        // Initialize page
+        window.onload = function() {
+            if (authToken) {
+                getCurrentUser();
+            }
+        };
+
+        async function login() {
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+
+            if (!username || !password) {
+                showMessage('Please fill in all fields', 'error');
+                return;
+            }
+
+            showMessage('Logging in...', 'info');
+
+            try {
+                console.log('Attempting login with:', { username, password: '***' });
+                
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                console.log('Login response status:', response.status);
+                console.log('Login response headers:', response.headers);
+
+                const data = await response.json();
+                console.log('Login response data:', JSON.stringify(data, null, 2));
+
+                if (data.success) {
+                    authToken = data.token;
+                    localStorage.setItem('authToken', authToken);
+                    currentUser = data.user;
+                    showLoginSuccess();
+                    showLoggedIn(); // Show the profile sections immediately
+                } else {
+                    showMessage(data.message || 'Login failed', 'error');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showMessage('Network error during login', 'error');
+            }
+        }
+
+        async function quickRegister() {
+            const testUser = {
+                username: 'testuser2',
+                email: 'test2@example.com',
+                password: 'test123'
+            };
+
+            showMessage('Creating test account...', 'info');
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(testUser)
+                });
+
+                const data = await response.json();
+                console.log('Register response:', JSON.stringify(data, null, 2));
+
+                if (data.success) {
+                    // Auto-fill login form
+                    document.getElementById('loginUsername').value = testUser.username;
+                    document.getElementById('loginPassword').value = testUser.password;
+                    showMessage('Test account created! Credentials filled in login form.', 'success');
+                } else {
+                    if (data.message && data.message.includes('already exists')) {
+                        // User already exists, just fill the form
+                        document.getElementById('loginUsername').value = testUser.username;
+                        document.getElementById('loginPassword').value = testUser.password;
+                        showMessage('Test account already exists! Credentials filled in login form.', 'info');
+                    } else {
+                        showMessage(data.message || 'Registration failed', 'error');
+                    }
+                }
+            } catch (error) {
+                console.error('Register error:', error);
+                showMessage('Network error during registration', 'error');
+            }
+        }
+
+        async function getCurrentUser() {
+            if (!authToken) {
+                showLoggedOut();
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    currentUser = data.user;
+                    showLoggedIn();
+                } else {
+                    showMessage(data.message || 'Failed to get user info', 'error');
+                    logout();
+                }
+            } catch (error) {
+                console.error('Get user error:', error);
+                showMessage('Network error getting user info', 'error');
+                logout();
+            }
+        }
+
+        async function updateProfile() {
+            const displayName = document.getElementById('displayName').value.trim();
+
+            if (!displayName) {
+                showMessage('Please enter a display name', 'error');
+                return;
+            }
+
+            if (displayName.length < 1 || displayName.length > 50) {
+                showMessage('Display name must be 1-50 characters long', 'error');
+                return;
+            }
+
+            const updateBtn = document.getElementById('updateBtn');
+            updateBtn.disabled = true;
+            updateBtn.textContent = 'Updating...';
+
+            try {
+                const response = await fetch(`${API_BASE}/profile`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ display_name: displayName })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    currentUser = data.user;
+                    showMessage('Profile updated successfully! 🎉', 'success');
+                    updateUserInfo();
+                    // Clear the input
+                    document.getElementById('displayName').value = '';
+                } else {
+                    showMessage(data.message || 'Failed to update profile', 'error');
+                }
+            } catch (error) {
+                console.error('Update profile error:', error);
+                showMessage('Network error during profile update', 'error');
+            } finally {
+                updateBtn.disabled = false;
+                updateBtn.textContent = 'Update Profile';
+            }
+        }
+
+        function showLoggedIn() {
+            document.getElementById('status').className = 'status logged-in';
+            document.getElementById('status').textContent = `Logged in as ${currentUser.username}`;
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('userInfoSection').style.display = 'block';
+            document.getElementById('updateProfileSection').style.display = 'block';
+            updateUserInfo();
+        }
+
+        function showLoggedOut() {
+            document.getElementById('status').className = 'status logged-out';
+            document.getElementById('status').textContent = 'Please login first to test profile updates';
+            document.getElementById('loginSection').style.display = 'block';
+            document.getElementById('userInfoSection').style.display = 'none';
+            document.getElementById('updateProfileSection').style.display = 'none';
+        }
+
+        function showLoginSuccess() {
+            document.getElementById('loginUsername').value = '';
+            document.getElementById('loginPassword').value = '';
+        }
+
+        function updateUserInfo() {
+            if (!currentUser) return;
+
+            const userInfoDiv = document.getElementById('userInfo');
+            userInfoDiv.innerHTML = `
+                <h4>User Details:</h4>
+                <p><strong>ID:</strong> ${currentUser.id}</p>
+                <p><strong>Username:</strong> ${currentUser.username}</p>
+                <p><strong>Email:</strong> ${currentUser.email}</p>
+                <p><strong>Display Name:</strong> ${currentUser.display_name || '<em>Not set</em>'}</p>
+                <p><strong>Created:</strong> ${new Date(currentUser.created_at).toLocaleString()}</p>
+                <p><strong>Updated:</strong> ${new Date(currentUser.updated_at).toLocaleString()}</p>
+            `;
+
+            // Pre-fill the display name input
+            document.getElementById('displayName').value = currentUser.display_name || '';
+        }
+
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = text;
+            messageDiv.className = `message ${type}`;
+            messageDiv.style.display = 'block';
+
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        function logout() {
+            authToken = null;
+            currentUser = null;
+            localStorage.removeItem('authToken');
+            showLoggedOut();
+        }
+
+        // Handle Enter key
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                if (document.getElementById('loginSection').style.display !== 'none') {
+                    login();
+                } else if (document.getElementById('updateProfileSection').style.display !== 'none') {
+                    updateProfile();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

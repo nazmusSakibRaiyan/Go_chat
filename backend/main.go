@@ -63,6 +63,7 @@ func main() {
 		protected.Use(auth.AuthMiddleware(authHandlers))
 		{
 			protected.GET("/me", authHandlers.Me)
+			protected.PUT("/profile", authHandlers.UpdateProfile)
 		}
 
 		// WebSocket endpoint (optional auth)

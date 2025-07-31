@@ -1,6 +1,19 @@
 # 🚀 Go Chat Application
 
-A modern, secure real-time chat application built with Go backend and vanilla JavaScript frontend, featuring complete user authentication, real-time messaging, and beautiful UI design.
+A modern, secure real-time chat application built with Go backend and vanilla JavaScript frontend, featuring complete user authenti## 🎯 API Endpoints
+
+### 🔐 Authentication
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/login` - User login
+- `POST /api/auth/logout` - User logout
+- `GET /api/me` - Get current user (protected)
+- `PUT /api/profile` - Update user profile (protected)
+
+### 💬 Chat
+- `GET /api/rooms` - Get chat rooms
+- `POST /api/rooms` - Create chat room
+- `GET /api/rooms/:id/messages` - Get room messages
+- `GET /api/ws` - WebSocket connectiontime messaging, and beautiful UI design.
 
 ## ✨ Features
 

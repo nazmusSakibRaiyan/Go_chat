@@ -19,8 +19,17 @@ type User struct {
 	Username     string             `json:"username" bson:"username"`
 	Email        string             `json:"email" bson:"email"`
 	PasswordHash string             `json:"-" bson:"password_hash"`
+	DisplayName  string             `json:"display_name" bson:"display_name"`
 	CreatedAt    time.Time          `json:"created_at" bson:"created_at"`
 	UpdatedAt    time.Time          `json:"updated_at" bson:"updated_at"`
+}
+
+// GetDisplayName returns display name or username as fallback
+func (u *User) GetDisplayName() string {
+	if u.DisplayName != "" {
+		return u.DisplayName
+	}
+	return u.Username
 }
 
 type Message struct {

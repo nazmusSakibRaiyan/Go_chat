@@ -47,6 +47,10 @@ type LoginRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
+type UpdateProfileRequest struct {
+	DisplayName string `json:"display_name" binding:"required,min=1,max=50"`
+}
+
 type AuthResponse struct {
 	Success bool         `json:"success"`
 	Message string       `json:"message"`
@@ -309,4 +313,70 @@ func (h *AuthHandlers) ValidateJWT(tokenString string) (*Claims, error) {
 	}
 
 	return claims, nil
+}
+
+// UpdateProfile allows users to update their display name
+func (h *AuthHandlers) UpdateProfile(c *gin.Context) {
+	var req UpdateProfileRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, AuthResponse{
+			Success: false,
+			Message: "Invalid request data: " + err.Error(),
+		})
+		return
+	}
+
+	// Get user from context (set by AuthMiddleware)
+	userInterface, exists := c.Get("user")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, AuthResponse{
+			Success: false,
+			Message: "User not found in context",
+		})
+		return
+	}
+
+	user, ok := userInterface.(*models.User)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, AuthResponse{
+			Success: false,
+			Message: "Invalid user data in context",
+		})
+		return
+	}
+
+	// Check if database is available
+	if h.mongoDB == nil {
+		c.JSON(http.StatusServiceUnavailable, AuthResponse{
+			Success: false,
+			Message: "Database not available",
+		})
+		return
+	}
+
+	// Update user's display name
+	err := h.mongoDB.UpdateUserProfile(user.ID.Hex(), req.DisplayName)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, AuthResponse{
+			Success: false,
+			Message: "Failed to update profile: " + err.Error(),
+		})
+		return
+	}
+
+	// Get updated user data
+	updatedUser, err := h.mongoDB.GetUserByID(user.ID.Hex())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, AuthResponse{
+			Success: false,
+			Message: "Failed to fetch updated user data",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, AuthResponse{
+		Success: true,
+		Message: "Profile updated successfully",
+		User:    updatedUser,
+	})
 }
