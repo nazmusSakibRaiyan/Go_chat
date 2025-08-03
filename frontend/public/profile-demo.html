@@ -187,6 +187,63 @@
             border: 1px solid #bee5eb;
             color: #0c5460;
         }
+
+        .avatar-section {
+            margin: 20px 0;
+        }
+
+        .avatar-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .avatar-option {
+            text-align: center;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .avatar-option:hover {
+            border-color: #667eea;
+            background-color: #f8f9fa;
+            transform: translateY(-2px);
+        }
+
+        .avatar-option.selected {
+            border-color: #667eea;
+            background-color: #e3f2fd;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .avatar-icon {
+            width: 50px;
+            height: 50px;
+            background-color: #e9ecef;
+            border-radius: 50%;
+            margin: 0 auto 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .current-avatar {
+            width: 60px;
+            height: 60px;
+            background-color: #e9ecef;
+            border-radius: 50%;
+            margin: 0 auto 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
     </style>
 </head>
 <body>
@@ -236,6 +293,15 @@
                 <input type="text" id="displayName" placeholder="Enter your new display name" maxlength="50">
                 <small style="color: #666; font-size: 14px;">This is how others will see your name in chat (1-50 characters)</small>
             </div>
+            
+            <!-- Avatar Selection Section -->
+            <div class="avatar-section">
+                <label>Choose Your Avatar:</label>
+                <div id="avatarGrid" class="avatar-grid">
+                    <!-- Avatars will be loaded here -->
+                </div>
+            </div>
+            
             <button class="btn" onclick="updateProfile()" id="updateBtn">Update Profile</button>
         </div>
 
@@ -249,13 +315,73 @@
         const API_BASE = 'http://localhost:8080/api';
         let authToken = localStorage.getItem('authToken');
         let currentUser = null;
+        let selectedAvatar = 1;
+        let availableAvatars = [];
+
+        // Avatar emojis mapping
+        const avatarEmojis = {
+            1: '🐱', 2: '🐶', 3: '🐻', 4: '🦊', 5: '🦁', 6: '🐼',
+            7: '🤖', 8: '👽', 9: '🥷', 10: '🏴‍☠️', 11: '⚔️', 12: '🧙‍♂️'
+        };
 
         // Initialize page
         window.onload = function() {
+            loadAvatars();
             if (authToken) {
                 getCurrentUser();
             }
         };
+
+        async function loadAvatars() {
+            try {
+                const response = await fetch(`${API_BASE}/avatars`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    availableAvatars = data.avatars;
+                    renderAvatars();
+                } else {
+                    console.error('Failed to load avatars:', data.message);
+                }
+            } catch (error) {
+                console.error('Error loading avatars:', error);
+            }
+        }
+
+        function renderAvatars() {
+            const avatarGrid = document.getElementById('avatarGrid');
+            if (!avatarGrid) return;
+            
+            avatarGrid.innerHTML = '';
+            
+            availableAvatars.forEach(avatar => {
+                const avatarDiv = document.createElement('div');
+                avatarDiv.className = 'avatar-option';
+                avatarDiv.onclick = () => selectAvatar(avatar.id);
+                
+                avatarDiv.innerHTML = `
+                    <div class="avatar-icon">${avatarEmojis[avatar.id] || '👤'}</div>
+                    <div style="font-size: 12px;">${avatar.name}</div>
+                `;
+                
+                avatarGrid.appendChild(avatarDiv);
+            });
+        }
+
+        function selectAvatar(avatarId) {
+            selectedAvatar = avatarId;
+            
+            // Update UI
+            document.querySelectorAll('.avatar-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            
+            // Select the correct avatar (avatarId - 1 because array is 0-indexed)
+            const avatarOptions = document.querySelectorAll('.avatar-option');
+            if (avatarOptions[avatarId - 1]) {
+                avatarOptions[avatarId - 1].classList.add('selected');
+            }
+        }
 
         async function login() {
             const username = document.getElementById('loginUsername').value;
@@ -269,7 +395,7 @@
             showMessage('Logging in...', 'info');
 
             try {
-                console.log('Attempting login with:', { username, password: '***' });
+                console.log('Attempting login with username:', username);
                 
                 const response = await fetch(`${API_BASE}/auth/login`, {
                     method: 'POST',
@@ -280,31 +406,37 @@
                 });
 
                 console.log('Login response status:', response.status);
-                console.log('Login response headers:', response.headers);
 
                 const data = await response.json();
-                console.log('Login response data:', JSON.stringify(data, null, 2));
+                console.log('Login response data:', data);
 
-                if (data.success) {
+                if (response.ok && data.success) {
                     authToken = data.token;
                     localStorage.setItem('authToken', authToken);
                     currentUser = data.user;
+                    showMessage('Login successful! 🎉', 'success');
                     showLoginSuccess();
                     showLoggedIn(); // Show the profile sections immediately
                 } else {
-                    showMessage(data.message || 'Login failed', 'error');
+                    // Show detailed error message
+                    let errorMsg = data.message || 'Login failed';
+                    if (response.status === 401) {
+                        errorMsg = 'Invalid username or password. Please check your credentials.';
+                    }
+                    showMessage(errorMsg, 'error');
+                    console.error('Login failed:', errorMsg);
                 }
             } catch (error) {
                 console.error('Login error:', error);
-                showMessage('Network error during login', 'error');
+                showMessage('Network error during login. Please check if the server is running.', 'error');
             }
         }
 
         async function quickRegister() {
             const testUser = {
-                username: 'testuser2',
-                email: 'test2@example.com',
-                password: 'test123'
+                username: 'testuser',
+                email: 'testuser@example.com',
+                password: 'password123'
             };
 
             showMessage('Creating test account...', 'info');
@@ -319,25 +451,25 @@
                 });
 
                 const data = await response.json();
-                console.log('Register response:', JSON.stringify(data, null, 2));
+                console.log('Register response:', data);
 
-                if (data.success) {
-                    // Auto-fill login form
+                if (response.ok && data.success) {
+                    // Auto-fill login form with the new user
                     document.getElementById('loginUsername').value = testUser.username;
                     document.getElementById('loginPassword').value = testUser.password;
-                    showMessage('Test account created! Credentials filled in login form.', 'success');
+                    showMessage('Test account created! Username: testuser, Password: password123', 'success');
                 } else {
                     if (data.message && data.message.includes('already exists')) {
                         // User already exists, just fill the form
                         document.getElementById('loginUsername').value = testUser.username;
                         document.getElementById('loginPassword').value = testUser.password;
-                        showMessage('Test account already exists! Credentials filled in login form.', 'info');
+                        showMessage('Test account already exists! Use Username: testuser, Password: password123', 'info');
                     } else {
-                        showMessage(data.message || 'Registration failed', 'error');
+                        showMessage(data.message || 'Failed to create test account', 'error');
                     }
                 }
             } catch (error) {
-                console.error('Register error:', error);
+                console.error('Registration error:', error);
                 showMessage('Network error during registration', 'error');
             }
         }
@@ -389,13 +521,18 @@
             updateBtn.textContent = 'Updating...';
 
             try {
+                const requestBody = { 
+                    display_name: displayName,
+                    avatar: selectedAvatar
+                };
+
                 const response = await fetch(`${API_BASE}/profile`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${authToken}`
                     },
-                    body: JSON.stringify({ display_name: displayName })
+                    body: JSON.stringify(requestBody)
                 });
 
                 const data = await response.json();
@@ -444,18 +581,27 @@
             if (!currentUser) return;
 
             const userInfoDiv = document.getElementById('userInfo');
+            const currentAvatarEmoji = avatarEmojis[currentUser.avatar] || '👤';
+            const currentAvatarName = availableAvatars.find(a => a.id === currentUser.avatar)?.name || 'Default';
+            
             userInfoDiv.innerHTML = `
+                <div class="current-avatar">${currentAvatarEmoji}</div>
                 <h4>User Details:</h4>
                 <p><strong>ID:</strong> ${currentUser.id}</p>
                 <p><strong>Username:</strong> ${currentUser.username}</p>
                 <p><strong>Email:</strong> ${currentUser.email}</p>
                 <p><strong>Display Name:</strong> ${currentUser.display_name || '<em>Not set</em>'}</p>
+                <p><strong>Avatar:</strong> ${currentAvatarName}</p>
                 <p><strong>Created:</strong> ${new Date(currentUser.created_at).toLocaleString()}</p>
                 <p><strong>Updated:</strong> ${new Date(currentUser.updated_at).toLocaleString()}</p>
             `;
 
             // Pre-fill the display name input
             document.getElementById('displayName').value = currentUser.display_name || '';
+            
+            // Pre-select the current avatar
+            selectedAvatar = currentUser.avatar || 1;
+            selectAvatar(selectedAvatar);
         }
 
         function showMessage(text, type) {

@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avatar Demo - Go Chat</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .auth-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"], input[type="password"], input[type="email"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .avatar-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .avatar-option {
+            text-align: center;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .avatar-option:hover {
+            border-color: #007bff;
+            background-color: #f8f9fa;
+        }
+        .avatar-option.selected {
+            border-color: #007bff;
+            background-color: #e3f2fd;
+        }
+        .avatar-icon {
+            width: 60px;
+            height: 60px;
+            background-color: #e9ecef;
+            border-radius: 50%;
+            margin: 0 auto 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        .user-info {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .current-avatar {
+            width: 80px;
+            height: 80px;
+            background-color: #e9ecef;
+            border-radius: 50%;
+            margin: 0 auto 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+        }
+        .message {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎭 Avatar Demo - Go Chat</h1>
+        
+        <!-- Login/Register Section -->
+        <div id="authSection" class="auth-section">
+            <h3>Authentication</h3>
+            
+            <div class="form-group">
+                <label for="username">Username:</label>
+                <input type="text" id="username" placeholder="Enter username">
+            </div>
+            
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" placeholder="Enter email">
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" placeholder="Enter password">
+            </div>
+            
+            <button onclick="register()">Register</button>
+            <button onclick="login()">Login</button>
+            <button onclick="logout()">Logout</button>
+        </div>
+
+        <!-- User Profile Section -->
+        <div id="profileSection" class="auth-section hidden">
+            <h3>Your Profile</h3>
+            <div id="userInfo" class="user-info"></div>
+            
+            <div class="form-group">
+                <label for="displayName">Display Name:</label>
+                <input type="text" id="displayName" placeholder="Enter display name">
+            </div>
+            
+            <h4>Choose Your Avatar:</h4>
+            <div id="avatarGrid" class="avatar-grid"></div>
+            
+            <button onclick="updateProfile()">Update Profile</button>
+            <button onclick="loadProfile()">Refresh Profile</button>
+        </div>
+
+        <!-- Messages -->
+        <div id="messages"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/api';
+        let authToken = localStorage.getItem('auth_token');
+        let selectedAvatar = 1;
+        let availableAvatars = [];
+
+        // Avatar emojis mapping
+        const avatarEmojis = {
+            1: '🐱', 2: '🐶', 3: '🐻', 4: '🦊', 5: '🦁', 6: '🐼',
+            7: '🤖', 8: '👽', 9: '🥷', 10: '🏴‍☠️', 11: '⚔️', 12: '🧙‍♂️'
+        };
+
+        function showMessage(message, type = 'success') {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.textContent = message;
+            messagesDiv.appendChild(messageDiv);
+            
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 5000);
+        }
+
+        async function loadAvatars() {
+            try {
+                const response = await fetch(`${API_BASE}/avatars`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    availableAvatars = data.avatars;
+                    renderAvatars();
+                } else {
+                    showMessage('Failed to load avatars', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading avatars:', error);
+                showMessage('Error loading avatars', 'error');
+            }
+        }
+
+        function renderAvatars() {
+            const avatarGrid = document.getElementById('avatarGrid');
+            avatarGrid.innerHTML = '';
+            
+            availableAvatars.forEach(avatar => {
+                const avatarDiv = document.createElement('div');
+                avatarDiv.className = 'avatar-option';
+                avatarDiv.onclick = () => selectAvatar(avatar.id);
+                
+                avatarDiv.innerHTML = `
+                    <div class="avatar-icon">${avatarEmojis[avatar.id] || '👤'}</div>
+                    <div>${avatar.name}</div>
+                `;
+                
+                avatarGrid.appendChild(avatarDiv);
+            });
+        }
+
+        function selectAvatar(avatarId) {
+            selectedAvatar = avatarId;
+            
+            // Update UI
+            document.querySelectorAll('.avatar-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            
+            document.querySelectorAll('.avatar-option')[avatarId - 1].classList.add('selected');
+        }
+
+        async function register() {
+            const username = document.getElementById('username').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            if (!username || !email || !password) {
+                showMessage('Please fill in all fields', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username,
+                        email,
+                        password
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    authToken = data.token;
+                    localStorage.setItem('auth_token', authToken);
+                    showMessage('Registration successful!');
+                    showProfileSection();
+                    loadProfile();
+                } else {
+                    showMessage(data.message, 'error');
+                }
+            } catch (error) {
+                console.error('Registration error:', error);
+                showMessage('Registration failed', 'error');
+            }
+        }
+
+        async function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            if (!username || !password) {
+                showMessage('Please enter username and password', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username,
+                        password
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    authToken = data.token;
+                    localStorage.setItem('auth_token', authToken);
+                    showMessage('Login successful!');
+                    showProfileSection();
+                    loadProfile();
+                } else {
+                    showMessage(data.message, 'error');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showMessage('Login failed', 'error');
+            }
+        }
+
+        async function logout() {
+            authToken = null;
+            localStorage.removeItem('auth_token');
+            showMessage('Logged out successfully');
+            showAuthSection();
+        }
+
+        async function loadProfile() {
+            if (!authToken) {
+                showMessage('Please login first', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const user = data.user;
+                    document.getElementById('displayName').value = user.display_name || user.username;
+                    selectedAvatar = user.avatar || 1;
+                    
+                    // Update user info display
+                    const userInfo = document.getElementById('userInfo');
+                    userInfo.innerHTML = `
+                        <div class="current-avatar">${avatarEmojis[user.avatar] || '👤'}</div>
+                        <p><strong>Username:</strong> ${user.username}</p>
+                        <p><strong>Email:</strong> ${user.email}</p>
+                        <p><strong>Display Name:</strong> ${user.display_name || 'Not set'}</p>
+                        <p><strong>Avatar:</strong> ${availableAvatars.find(a => a.id === user.avatar)?.name || 'Default'}</p>
+                    `;
+                    
+                    // Update avatar selection
+                    selectAvatar(selectedAvatar);
+                } else {
+                    showMessage(data.message, 'error');
+                }
+            } catch (error) {
+                console.error('Profile load error:', error);
+                showMessage('Failed to load profile', 'error');
+            }
+        }
+
+        async function updateProfile() {
+            if (!authToken) {
+                showMessage('Please login first', 'error');
+                return;
+            }
+            
+            const displayName = document.getElementById('displayName').value;
+            
+            if (!displayName) {
+                showMessage('Please enter a display name', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/profile`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        display_name: displayName,
+                        avatar: selectedAvatar
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showMessage('Profile updated successfully!');
+                    loadProfile();
+                } else {
+                    showMessage(data.message, 'error');
+                }
+            } catch (error) {
+                console.error('Profile update error:', error);
+                showMessage('Failed to update profile', 'error');
+            }
+        }
+
+        function showAuthSection() {
+            document.getElementById('authSection').classList.remove('hidden');
+            document.getElementById('profileSection').classList.add('hidden');
+        }
+
+        function showProfileSection() {
+            document.getElementById('authSection').classList.add('hidden');
+            document.getElementById('profileSection').classList.remove('hidden');
+        }
+
+        // Initialize
+        window.onload = async function() {
+            await loadAvatars();
+            
+            if (authToken) {
+                showProfileSection();
+                loadProfile();
+            } else {
+                showAuthSection();
+            }
+        };
+    </script>
+</body>
+</html>

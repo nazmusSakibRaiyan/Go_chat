@@ -1,17 +1,16 @@
-# Go C- **🔐 User Authentication**: Secure registration and login with JWT tokens
-- **👤 Profile Management**: Update display names with real-time validation
-- **💬 Real-time Chat**: WebSocket-based instant messaging with JWT authentication Application
+# Go Chat - Real-time Chat Application
 
-A complete real-time chat application built with Go (backend) and vanilla JavaScript (frontend), featuring secure user authentication, WebSocket communication, and MongoDB for data persistence.
+A complete real-time chat application built with Go (backend) and vanilla JavaScript (frontend), featuring secure user authentication, avatar system, WebSocket communication, and MongoDB for data persistence.
 
 ## 🚀 Features
 
 - **🔐 User Authentication**: Secure registration and login with JWT tokens
-- **� Profile Management**: Update display names with real-time validation
-- **�💬 Real-time Chat**: WebSocket-based instant messaging with JWT authentication
+- **👤 Profile Management**: Update display names and choose avatars with real-time validation
+- **🎭 Avatar System**: 12 unique avatars (Cat, Dog, Bear, Fox, Lion, Panda, Robot, Alien, Ninja, Pirate, Knight, Wizard)
+- **💬 Real-time Chat**: Stable WebSocket-based instant messaging with JWT authentication
 - **🛡️ Password Security**: Bcrypt hashing with strength validation
 - **⚡ Rate Limiting**: Protection against brute force attacks
-- **📱 Responsive UI**: Modern, mobile-friendly interface
+- **📱 Responsive UI**: Modern, mobile-friendly interface with avatar display
 - **🗄️ MongoDB Integration**: Efficient data storage and retrieval
 - **🔍 API Testing**: Built-in API testing interface
 - **📚 Comprehensive Documentation**: Complete guides for development and deployment
@@ -42,6 +41,7 @@ Comprehensive documentation is available in the [`docs/`](docs/) folder:
 - **[🔗 API Documentation](docs/API.md)** - Detailed API endpoints and usage
 - **[🔐 Authentication Guide](docs/AUTHENTICATION.md)** - JWT authentication implementation
 - **[👤 Profile Feature](docs/PROFILE_FEATURE.md)** - Update profile functionality
+- **[🎭 Avatar Feature](docs/AVATAR_FEATURE.md)** - Avatar system implementation
 - **[🐳 Deployment Guide](docs/DEPLOYMENT.md)** - Production deployment instructions
 - **[⚙️ Development Guide](docs/DEVELOPMENT.md)** - Development setup and guidelines
 - **[📊 MongoDB Setup](docs/MONGODB_SETUP.md)** - Database configuration guide
@@ -88,7 +88,10 @@ Go_chat/
 │       ├── index.html     # Main chat interface
 │       ├── index-auth.html # Full authentication demo
 │       ├── api-tester.html # API testing interface
-│       └── launcher.html   # Frontend navigation
+│       ├── launcher.html   # Frontend navigation
+│       ├── profile-demo.html # Profile & Avatar Manager
+│       └── static/        # Static assets
+│           └── avatars/   # Avatar images (12 unique avatars)
 │
 └── docs/                  # Documentation
     ├── README.md          # Main project documentation
@@ -157,8 +160,9 @@ Ctrl+Shift+P → "Tasks: Run Task" → "Start Backend Server"
 
 ### Multiple Interfaces
 
-- **Main Chat App** (`index.html`) - Full featured chat application
+- **Main Chat App** (`index.html`) - Full featured chat application with avatar display
 - **Auth Demo** (`index-auth.html`) - Simple authentication demonstration
+- **Profile & Avatar Manager** (`profile-demo.html`) - Manage display name and select avatars
 - **API Tester** (`api-tester.html`) - Test API endpoints directly
 - **Launcher** (`launcher.html`) - Navigate between interfaces
 
@@ -206,7 +210,15 @@ go test -v ./auth
 
 ## 🆕 Recent Updates
 
-### Version 2.1.0 - Latest Features
+### Version 2.2.0 - Avatar System & WebSocket Stability (August 2025)
+- ✅ **Avatar System**: 12 unique avatars for user personalization (Cat, Dog, Bear, Fox, Lion, Panda, Robot, Alien, Ninja, Pirate, Knight, Wizard)
+- ✅ **Profile & Avatar Manager**: Dedicated interface for managing user profiles and avatars
+- ✅ **WebSocket Stability**: Fixed connection stability issues - no more repeated disconnections
+- ✅ **Enhanced Chat Interface**: Avatars display beside usernames in chat
+- ✅ **Improved Authentication Flow**: Seamless integration between auth and profile management
+- ✅ **Better Error Handling**: Enhanced error messages and connection debugging
+
+### Version 2.1.0 - Profile Management
 - ✅ **Profile Management**: Users can now update their display names
 - ✅ **Enhanced Authentication**: Improved JWT token handling across all pages  
 - ✅ **Better Navigation**: Streamlined UI with consistent navigation links
@@ -246,6 +258,7 @@ For help and support:
 - **[API Reference](docs/API.md)** - All endpoints with examples
 - **[Authentication Guide](docs/AUTHENTICATION.md)** - Security implementation details
 - **[Profile Feature Guide](docs/PROFILE_FEATURE.md)** - Update profile functionality
+- **[Avatar Feature Guide](docs/AVATAR_FEATURE.md)** - Avatar system implementation
 - **[Deployment Guide](docs/DEPLOYMENT.md)** - Production deployment instructions
 - **[Development Guide](docs/DEVELOPMENT.md)** - Contributing and development workflow
 
@@ -253,5 +266,5 @@ For help and support:
 
 **Built with ❤️ using Go and JavaScript**
 
-**Last Updated**: January 2025  
-**Version**: 2.1.0
+**Last Updated**: August 2025  
+**Version**: 2.2.0

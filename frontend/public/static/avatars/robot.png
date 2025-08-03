@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <rect x="8" y="8" width="48" height="48" fill="#607d8b" rx="4"/>
+  <circle cx="24" cy="24" r="3" fill="#00e676"/>
+  <circle cx="40" cy="24" r="3" fill="#00e676"/>
+  <rect x="20" y="36" width="24" height="4" fill="#00e676"/>
+  <text x="32" y="12" text-anchor="middle" font-size="8" fill="#333">Robot</text>
+</svg>

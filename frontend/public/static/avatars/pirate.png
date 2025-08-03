@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <circle cx="32" cy="32" r="30" fill="#8d6e63"/>
+  <circle cx="24" cy="24" r="3" fill="#333"/>
+  <circle cx="40" cy="24" r="3" fill="#333"/>
+  <path d="M24 40 Q32 46 40 40" stroke="#333" stroke-width="2" fill="none"/>
+  <rect x="20" y="14" width="24" height="4" fill="#333"/>
+  <text x="32" y="12" text-anchor="middle" font-size="8" fill="#333">Pirate</text>
+</svg>

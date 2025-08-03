@@ -20,6 +20,7 @@ type User struct {
 	Email        string             `json:"email" bson:"email"`
 	PasswordHash string             `json:"-" bson:"password_hash"`
 	DisplayName  string             `json:"display_name" bson:"display_name"`
+	Avatar       int                `json:"avatar" bson:"avatar"` // Avatar ID (1-12)
 	CreatedAt    time.Time          `json:"created_at" bson:"created_at"`
 	UpdatedAt    time.Time          `json:"updated_at" bson:"updated_at"`
 }
@@ -48,4 +49,42 @@ type WebSocketMessage struct {
 	Username string      `json:"username,omitempty"`
 	Content  string      `json:"content,omitempty"`
 	Data     interface{} `json:"data,omitempty"`
+}
+
+type Avatar struct {
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+	URL  string `json:"url"`
+}
+
+// GetAvailableAvatars returns the list of 12 available avatars
+func GetAvailableAvatars() []Avatar {
+	return []Avatar{
+		{ID: 1, Name: "Cat", URL: "/static/avatars/cat.png"},
+		{ID: 2, Name: "Dog", URL: "/static/avatars/dog.png"},
+		{ID: 3, Name: "Bear", URL: "/static/avatars/bear.png"},
+		{ID: 4, Name: "Fox", URL: "/static/avatars/fox.png"},
+		{ID: 5, Name: "Lion", URL: "/static/avatars/lion.png"},
+		{ID: 6, Name: "Panda", URL: "/static/avatars/panda.png"},
+		{ID: 7, Name: "Robot", URL: "/static/avatars/robot.png"},
+		{ID: 8, Name: "Alien", URL: "/static/avatars/alien.png"},
+		{ID: 9, Name: "Ninja", URL: "/static/avatars/ninja.png"},
+		{ID: 10, Name: "Pirate", URL: "/static/avatars/pirate.png"},
+		{ID: 11, Name: "Knight", URL: "/static/avatars/knight.png"},
+		{ID: 12, Name: "Wizard", URL: "/static/avatars/wizard.png"},
+	}
+}
+
+// IsValidAvatar checks if the avatar ID is valid (1-12)
+func IsValidAvatar(avatarID int) bool {
+	return avatarID >= 1 && avatarID <= 12
+}
+
+// GetAvatarURL returns the URL for a given avatar ID
+func GetAvatarURL(avatarID int) string {
+	if !IsValidAvatar(avatarID) {
+		return "/static/avatars/default.png"
+	}
+	avatars := GetAvailableAvatars()
+	return avatars[avatarID-1].URL
 }

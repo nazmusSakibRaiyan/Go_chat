@@ -49,6 +49,7 @@ type LoginRequest struct {
 
 type UpdateProfileRequest struct {
 	DisplayName string `json:"display_name" binding:"required,min=1,max=50"`
+	Avatar      *int   `json:"avatar,omitempty"` // Optional avatar ID (1-12)
 }
 
 type AuthResponse struct {
@@ -315,13 +316,22 @@ func (h *AuthHandlers) ValidateJWT(tokenString string) (*Claims, error) {
 	return claims, nil
 }
 
-// UpdateProfile allows users to update their display name
+// UpdateProfile allows users to update their display name and avatar
 func (h *AuthHandlers) UpdateProfile(c *gin.Context) {
 	var req UpdateProfileRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, AuthResponse{
 			Success: false,
 			Message: "Invalid request data: " + err.Error(),
+		})
+		return
+	}
+
+	// Validate avatar if provided
+	if req.Avatar != nil && !models.IsValidAvatar(*req.Avatar) {
+		c.JSON(http.StatusBadRequest, AuthResponse{
+			Success: false,
+			Message: "Invalid avatar ID. Must be between 1 and 12",
 		})
 		return
 	}
@@ -354,8 +364,8 @@ func (h *AuthHandlers) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	// Update user's display name
-	err := h.mongoDB.UpdateUserProfile(user.ID.Hex(), req.DisplayName)
+	// Update user's display name and avatar
+	err := h.mongoDB.UpdateUserProfile(user.ID.Hex(), req.DisplayName, req.Avatar)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, AuthResponse{
 			Success: false,
@@ -378,5 +388,16 @@ func (h *AuthHandlers) UpdateProfile(c *gin.Context) {
 		Success: true,
 		Message: "Profile updated successfully",
 		User:    updatedUser,
+	})
+}
+
+// GetAvatars returns the list of available avatars
+func (h *AuthHandlers) GetAvatars(c *gin.Context) {
+	avatars := models.GetAvailableAvatars()
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Available avatars retrieved",
+		"avatars": avatars,
 	})
 }

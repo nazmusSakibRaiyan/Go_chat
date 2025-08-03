@@ -54,6 +54,18 @@
             font-size: 0.9em;
         }
 
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
         .user-profile .display-name {
             font-weight: 500;
         }
@@ -269,6 +281,7 @@
         <div class="chat-header">
             <h1>Go Chat App</h1>
             <div class="user-profile" id="userProfile">
+                <div class="user-avatar" id="userAvatar">👤</div>
                 <span class="display-name" id="displayName">Loading...</span>
                 <button class="logout-btn" onclick="logout()">Logout</button>
             </div>
@@ -345,9 +358,10 @@
                     this.rooms = await response.json();
                     this.renderRoomButtons();
                     
-                    // Set default room
-                    if (this.rooms.length > 0) {
+                    // Set default room only if not already set
+                    if (this.rooms.length > 0 && !this.currentRoomId) {
                         this.currentRoomId = this.rooms[0].id;
+                        console.log('Set default room:', this.currentRoomId);
                     }
                 } catch (error) {
                     console.error('Failed to load rooms:', error);
@@ -357,7 +371,10 @@
                         {id: 'random', name: 'Random', description: 'Random discussions'},
                         {id: 'tech', name: 'Tech', description: 'Technology discussions'}
                     ];
-                    this.currentRoomId = this.rooms[0].id;
+                    if (!this.currentRoomId) {
+                        this.currentRoomId = this.rooms[0].id;
+                        console.log('Set fallback default room:', this.currentRoomId);
+                    }
                     this.renderRoomButtons();
                 }
             }
@@ -428,7 +445,8 @@
                         this.onMessage(event);
                     };
                     
-                    this.websocket.onclose = () => {
+                    this.websocket.onclose = (event) => {
+                        console.log('WebSocket closed:', event.code, event.reason);
                         this.onDisconnected();
                     };
                     
@@ -451,6 +469,7 @@
 
             onConnected() {
                 this.isConnected = true;
+                console.log('Chat connected to room:', this.currentRoomId);
                 this.updateStatus(`Connected as ${this.username}`, 'connected');
                 
                 this.connectBtn.style.display = 'none';
@@ -464,6 +483,7 @@
 
             onDisconnected() {
                 this.isConnected = false;
+                console.log('Chat disconnected - updating UI');
                 this.updateStatus('Disconnected', 'disconnected');
                 
                 this.connectBtn.style.display = 'inline-block';
@@ -473,6 +493,9 @@
                 this.sendBtn.disabled = true;
                 
                 this.websocket = null;
+                
+                // Show reconnect message for room switches only
+                this.updateStatus('Switched to general room. Connect to start chatting.', 'disconnected');
             }
 
             onMessage(event) {
@@ -538,8 +561,10 @@
 
             switchRoom(roomId) {
                 if (roomId === this.currentRoomId) {
-                    return;
+                    return; // No need to switch if already in the same room
                 }
+
+                const previousRoomId = this.currentRoomId;
 
                 // Update UI
                 this.roomButtons.forEach(button => {
@@ -565,12 +590,13 @@
                 // Load room messages
                 this.loadRoomMessages(roomId);
 
-                // Reconnect if already connected
-                if (this.isConnected) {
+                // Only reconnect if we're actually connected and the room changed
+                if (this.isConnected && previousRoomId !== roomId) {
+                    console.log('Switching from room', previousRoomId, 'to', roomId);
                     this.disconnect();
                     setTimeout(() => {
                         this.connect();
-                    }, 500);
+                    }, 1000); // Increased delay to ensure clean disconnect
                 }
             }
 
@@ -604,6 +630,12 @@
         let currentUser = null;
         let authToken = localStorage.getItem('authToken');
 
+        // Avatar emojis mapping
+        const avatarEmojis = {
+            1: '🐱', 2: '🐶', 3: '🐻', 4: '🦊', 5: '🦁', 6: '🐼',
+            7: '🤖', 8: '👽', 9: '🥷', 10: '🏴‍☠️', 11: '⚔️', 12: '🧙‍♂️'
+        };
+
         // Check authentication on page load
         window.onload = async function() {
             if (authToken) {
@@ -631,20 +663,34 @@
             showAuthRequired();
         };
 
+        // Global chat app instance
+        let chatAppInstance = null;
+
         function showChatInterface() {
             document.getElementById('authRequired').style.display = 'none';
             document.getElementById('chatContainer').style.display = 'flex';
             
             // Update user profile display
             const displayNameElement = document.getElementById('displayName');
+            const userAvatarElement = document.getElementById('userAvatar');
+            
             const displayName = currentUser.display_name || currentUser.username;
             displayNameElement.textContent = displayName;
+            
+            // Update avatar display
+            const avatarEmoji = avatarEmojis[currentUser.avatar] || '👤';
+            userAvatarElement.textContent = avatarEmoji;
             
             // Auto-fill username
             document.getElementById('usernameInput').value = currentUser.username;
             
-            // Initialize chat app
-            const chatApp = new ChatApp();
+            // Initialize chat app only once
+            if (!chatAppInstance) {
+                chatAppInstance = new ChatApp();
+                console.log('ChatApp instance created');
+            } else {
+                console.log('ChatApp instance already exists');
+            }
         }
 
         function showAuthRequired() {
@@ -653,6 +699,13 @@
         }
 
         function logout() {
+            // Disconnect chat app before logout
+            if (chatAppInstance && chatAppInstance.websocket) {
+                chatAppInstance.disconnect();
+                chatAppInstance = null;
+                console.log('ChatApp instance destroyed');
+            }
+            
             // Call logout endpoint before clearing data
             if (authToken) {
                 fetch(`${API_BASE}/auth/logout`, {

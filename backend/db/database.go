@@ -260,6 +260,11 @@ func (m *MongoDB) CreateUser(user models.User) (*models.User, error) {
 	user.CreatedAt = time.Now()
 	user.UpdatedAt = time.Now()
 
+	// Set default avatar if not provided
+	if user.Avatar == 0 {
+		user.Avatar = 1 // Default to first avatar
+	}
+
 	result, err := collection.InsertOne(ctx, user)
 	if err != nil {
 		return nil, err
@@ -316,8 +321,8 @@ func (m *MongoDB) GetUserByID(userID string) (*models.User, error) {
 	return &user, nil
 }
 
-// UpdateUserProfile updates a user's display name
-func (m *MongoDB) UpdateUserProfile(userID string, displayName string) error {
+// UpdateUserProfile updates a user's display name and/or avatar
+func (m *MongoDB) UpdateUserProfile(userID string, displayName string, avatar *int) error {
 	ctx := context.Background()
 	collection := m.Database.Collection("users")
 
@@ -326,12 +331,19 @@ func (m *MongoDB) UpdateUserProfile(userID string, displayName string) error {
 		return err
 	}
 
-	// Update the user's display name and updated_at timestamp
+	// Build update document
+	updateFields := bson.M{
+		"display_name": displayName,
+		"updated_at":   time.Now(),
+	}
+
+	// Add avatar to update if provided
+	if avatar != nil {
+		updateFields["avatar"] = *avatar
+	}
+
 	update := bson.M{
-		"$set": bson.M{
-			"display_name": displayName,
-			"updated_at":   time.Now(),
-		},
+		"$set": updateFields,
 	}
 
 	_, err = collection.UpdateOne(ctx, bson.M{"_id": objectID}, update)

@@ -47,6 +47,9 @@ func main() {
 	corsConfig.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
 	router.Use(cors.New(corsConfig))
 
+	// Serve static files
+	router.Static("/static", "../frontend/public/static")
+
 	// API routes
 	api := router.Group("/api")
 	{
@@ -65,6 +68,9 @@ func main() {
 			protected.GET("/me", authHandlers.Me)
 			protected.PUT("/profile", authHandlers.UpdateProfile)
 		}
+
+		// Public routes (no auth required)
+		api.GET("/avatars", authHandlers.GetAvatars)
 
 		// WebSocket endpoint (optional auth)
 		api.GET("/ws", func(c *gin.Context) {
