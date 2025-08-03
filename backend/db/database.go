@@ -265,6 +265,11 @@ func (m *MongoDB) CreateUser(user models.User) (*models.User, error) {
 		user.Avatar = 1 // Default to first avatar
 	}
 
+	// Set default status if not provided
+	if user.Status == "" {
+		user.Status = models.GetDefaultStatus()
+	}
+
 	result, err := collection.InsertOne(ctx, user)
 	if err != nil {
 		return nil, err
@@ -321,8 +326,8 @@ func (m *MongoDB) GetUserByID(userID string) (*models.User, error) {
 	return &user, nil
 }
 
-// UpdateUserProfile updates a user's display name and/or avatar
-func (m *MongoDB) UpdateUserProfile(userID string, displayName string, avatar *int) error {
+// UpdateUserProfile updates a user's display name, avatar, and/or status
+func (m *MongoDB) UpdateUserProfile(userID string, displayName string, avatar *int, status string) error {
 	ctx := context.Background()
 	collection := m.Database.Collection("users")
 
@@ -340,6 +345,11 @@ func (m *MongoDB) UpdateUserProfile(userID string, displayName string, avatar *i
 	// Add avatar to update if provided
 	if avatar != nil {
 		updateFields["avatar"] = *avatar
+	}
+
+	// Add status to update if provided
+	if status != "" {
+		updateFields["status"] = status
 	}
 
 	update := bson.M{

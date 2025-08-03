@@ -21,6 +21,7 @@ type User struct {
 	PasswordHash string             `json:"-" bson:"password_hash"`
 	DisplayName  string             `json:"display_name" bson:"display_name"`
 	Avatar       int                `json:"avatar" bson:"avatar"` // Avatar ID (1-12)
+	Status       string             `json:"status" bson:"status"` // User status: online, away, busy
 	CreatedAt    time.Time          `json:"created_at" bson:"created_at"`
 	UpdatedAt    time.Time          `json:"updated_at" bson:"updated_at"`
 }
@@ -87,4 +88,32 @@ func GetAvatarURL(avatarID int) string {
 	}
 	avatars := GetAvailableAvatars()
 	return avatars[avatarID-1].URL
+}
+
+// User status constants
+const (
+	StatusOnline = "online"
+	StatusAway   = "away"
+	StatusBusy   = "busy"
+)
+
+// GetValidStatuses returns the list of valid user statuses
+func GetValidStatuses() []string {
+	return []string{StatusOnline, StatusAway, StatusBusy}
+}
+
+// IsValidStatus checks if the status is valid
+func IsValidStatus(status string) bool {
+	validStatuses := GetValidStatuses()
+	for _, validStatus := range validStatuses {
+		if status == validStatus {
+			return true
+		}
+	}
+	return false
+}
+
+// GetDefaultStatus returns the default status for new users
+func GetDefaultStatus() string {
+	return StatusOnline
 }

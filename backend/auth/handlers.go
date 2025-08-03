@@ -50,6 +50,7 @@ type LoginRequest struct {
 type UpdateProfileRequest struct {
 	DisplayName string `json:"display_name" binding:"required,min=1,max=50"`
 	Avatar      *int   `json:"avatar,omitempty"` // Optional avatar ID (1-12)
+	Status      string `json:"status,omitempty"` // Optional status: online, away, busy
 }
 
 type AuthResponse struct {
@@ -336,6 +337,15 @@ func (h *AuthHandlers) UpdateProfile(c *gin.Context) {
 		return
 	}
 
+	// Validate status if provided
+	if req.Status != "" && !models.IsValidStatus(req.Status) {
+		c.JSON(http.StatusBadRequest, AuthResponse{
+			Success: false,
+			Message: "Invalid status. Must be one of: online, away, busy",
+		})
+		return
+	}
+
 	// Get user from context (set by AuthMiddleware)
 	userInterface, exists := c.Get("user")
 	if !exists {
@@ -364,8 +374,8 @@ func (h *AuthHandlers) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	// Update user's display name and avatar
-	err := h.mongoDB.UpdateUserProfile(user.ID.Hex(), req.DisplayName, req.Avatar)
+	// Update user's display name, avatar, and status
+	err := h.mongoDB.UpdateUserProfile(user.ID.Hex(), req.DisplayName, req.Avatar, req.Status)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, AuthResponse{
 			Success: false,
@@ -399,5 +409,16 @@ func (h *AuthHandlers) GetAvatars(c *gin.Context) {
 		"success": true,
 		"message": "Available avatars retrieved",
 		"avatars": avatars,
+	})
+}
+
+// GetStatuses returns the list of available user statuses
+func (h *AuthHandlers) GetStatuses(c *gin.Context) {
+	statuses := models.GetValidStatuses()
+
+	c.JSON(http.StatusOK, gin.H{
+		"success":  true,
+		"message":  "Available statuses retrieved",
+		"statuses": statuses,
 	})
 }

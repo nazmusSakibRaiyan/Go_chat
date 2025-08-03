@@ -244,6 +244,33 @@
             justify-content: center;
             font-size: 24px;
         }
+
+        .status-section {
+            margin: 20px 0;
+        }
+
+        .status-section select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-top: 5px;
+            transition: border-color 0.3s;
+        }
+
+        .status-section select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .status-section small {
+            color: #666;
+            font-size: 14px;
+            display: block;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
@@ -300,6 +327,19 @@
                 <div id="avatarGrid" class="avatar-grid">
                     <!-- Avatars will be loaded here -->
                 </div>
+            </div>
+            
+            <!-- Status Selection Section -->
+            <div class="status-section">
+                <label for="userStatus">Set Your Status:</label>
+                <select id="userStatus">
+                    <option value="online">🟢 Online</option>
+                    <option value="away">🟡 Away</option>
+                    <option value="busy">🔴 Busy</option>
+                </select>
+                <small>
+                    Your status indicates your availability to other users
+                </small>
             </div>
             
             <button class="btn" onclick="updateProfile()" id="updateBtn">Update Profile</button>
@@ -505,6 +545,7 @@
 
         async function updateProfile() {
             const displayName = document.getElementById('displayName').value.trim();
+            const status = document.getElementById('userStatus').value;
 
             if (!displayName) {
                 showMessage('Please enter a display name', 'error');
@@ -523,7 +564,8 @@
             try {
                 const requestBody = { 
                     display_name: displayName,
-                    avatar: selectedAvatar
+                    avatar: selectedAvatar,
+                    status: status
                 };
 
                 const response = await fetch(`${API_BASE}/profile`, {
@@ -584,6 +626,14 @@
             const currentAvatarEmoji = avatarEmojis[currentUser.avatar] || '👤';
             const currentAvatarName = availableAvatars.find(a => a.id === currentUser.avatar)?.name || 'Default';
             
+            // Status emoji mapping
+            const statusEmojis = {
+                'online': '🟢',
+                'away': '🟡',
+                'busy': '🔴'
+            };
+            const statusEmoji = statusEmojis[currentUser.status] || '🟢';
+            
             userInfoDiv.innerHTML = `
                 <div class="current-avatar">${currentAvatarEmoji}</div>
                 <h4>User Details:</h4>
@@ -592,6 +642,7 @@
                 <p><strong>Email:</strong> ${currentUser.email}</p>
                 <p><strong>Display Name:</strong> ${currentUser.display_name || '<em>Not set</em>'}</p>
                 <p><strong>Avatar:</strong> ${currentAvatarName}</p>
+                <p><strong>Status:</strong> ${statusEmoji} ${(currentUser.status || 'online').charAt(0).toUpperCase() + (currentUser.status || 'online').slice(1)}</p>
                 <p><strong>Created:</strong> ${new Date(currentUser.created_at).toLocaleString()}</p>
                 <p><strong>Updated:</strong> ${new Date(currentUser.updated_at).toLocaleString()}</p>
             `;
@@ -602,6 +653,9 @@
             // Pre-select the current avatar
             selectedAvatar = currentUser.avatar || 1;
             selectAvatar(selectedAvatar);
+            
+            // Pre-select the current status
+            document.getElementById('userStatus').value = currentUser.status || 'online';
         }
 
         function showMessage(text, type) {

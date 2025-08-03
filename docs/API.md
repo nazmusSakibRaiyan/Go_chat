@@ -193,7 +193,7 @@ curl -X GET http://localhost:8080/api/me \
 
 **PUT** `/profile` 🔒
 
-Update current user's profile information.
+Update current user's profile information including display name, avatar, and status.
 
 **Headers:**
 ```
@@ -204,7 +204,9 @@ Content-Type: application/json
 **Request Body:**
 ```json
 {
-  "display_name": "string (3-50 chars, optional)"
+  "display_name": "string (1-50 chars, required)",
+  "avatar": "integer (1-12, optional)",
+  "status": "string (online/away/busy, optional)"
 }
 ```
 
@@ -218,6 +220,8 @@ Content-Type: application/json
     "username": "johndoe",
     "email": "john@example.com",
     "display_name": "John Doe",
+    "avatar": 5,
+    "status": "online",
     "created_at": "2025-07-30T10:00:00Z",
     "updated_at": "2025-07-30T12:30:00Z"
   }
@@ -225,21 +229,22 @@ Content-Type: application/json
 ```
 
 **Error Responses:**
-- `400 Bad Request` - Invalid display name (too short, too long, or empty)
+- `400 Bad Request` - Invalid display name, avatar ID, or status
 - `401 Unauthorized` - Invalid or missing token
 - `500 Internal Server Error` - Server error
 
 **Validation Rules:**
-- Display name must be 3-50 characters long
-- Display name cannot be only whitespace
-- Special characters are allowed
+- Display name must be 1-50 characters long
+- Avatar ID must be between 1 and 12 (if provided)
+- Status must be one of: "online", "away", "busy" (if provided)
+- All fields except display_name are optional
 
 **Example:**
 ```bash
 curl -X PUT http://localhost:8080/api/profile \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
   -H "Content-Type: application/json" \
-  -d '{"display_name": "John Doe"}'
+  -d '{"display_name": "John Doe", "avatar": 5, "status": "away"}'
 ```
 
 ## 💬 Chat Room Endpoints
@@ -347,7 +352,67 @@ Get message history for a specific room.
 curl -X GET "http://localhost:8080/api/rooms/507f1f77bcf86cd799439011/messages?limit=20"
 ```
 
-## 🔌 WebSocket Connection
+## �️ Utility Endpoints
+
+### Get Available Avatars
+
+**GET** `/avatars`
+
+Retrieve list of all available avatar options for user profiles.
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Available avatars retrieved",
+  "avatars": [
+    {"id": 1, "name": "Cat", "url": "/static/avatars/cat.png"},
+    {"id": 2, "name": "Dog", "url": "/static/avatars/dog.png"},
+    {"id": 3, "name": "Bear", "url": "/static/avatars/bear.png"},
+    {"id": 4, "name": "Fox", "url": "/static/avatars/fox.png"},
+    {"id": 5, "name": "Lion", "url": "/static/avatars/lion.png"},
+    {"id": 6, "name": "Panda", "url": "/static/avatars/panda.png"},
+    {"id": 7, "name": "Robot", "url": "/static/avatars/robot.png"},
+    {"id": 8, "name": "Alien", "url": "/static/avatars/alien.png"},
+    {"id": 9, "name": "Ninja", "url": "/static/avatars/ninja.png"},
+    {"id": 10, "name": "Pirate", "url": "/static/avatars/pirate.png"},
+    {"id": 11, "name": "Knight", "url": "/static/avatars/knight.png"},
+    {"id": 12, "name": "Wizard", "url": "/static/avatars/wizard.png"}
+  ]
+}
+```
+
+**Example:**
+```bash
+curl -X GET http://localhost:8080/api/avatars
+```
+
+### Get Available Statuses
+
+**GET** `/statuses`
+
+Retrieve list of all available user status options.
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Available statuses retrieved",
+  "statuses": ["online", "away", "busy"]
+}
+```
+
+**Status Descriptions:**
+- `online` - User is actively available and ready to chat
+- `away` - User is temporarily unavailable
+- `busy` - User is occupied and may not respond immediately
+
+**Example:**
+```bash
+curl -X GET http://localhost:8080/api/statuses
+```
+
+## �🔌 WebSocket Connection
 
 ### Connect to WebSocket
 

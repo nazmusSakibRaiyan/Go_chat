@@ -5,6 +5,7 @@ import (
 	"go-chat-backend/chat"
 	"go-chat-backend/config"
 	"go-chat-backend/db"
+	"go-chat-backend/status"
 	"log"
 	"net/http"
 
@@ -37,6 +38,10 @@ func main() {
 	// Create auth handlers
 	authHandlers := auth.NewAuthHandlers(mongoDB, cfg.JWTSecret)
 
+	// Create status handlers and middleware
+	statusHandlers := status.NewStatusHandlers(mongoDB)
+	statusMiddleware := status.NewStatusMiddleware(statusHandlers.GetStatusService())
+
 	// Setup router
 	router := gin.Default()
 
@@ -64,26 +69,42 @@ func main() {
 		// Protected routes (auth required)
 		protected := api.Group("/")
 		protected.Use(auth.AuthMiddleware(authHandlers))
+		protected.Use(statusMiddleware.InjectStatusInfo()) // Add status info to context
 		{
 			protected.GET("/me", authHandlers.Me)
 			protected.PUT("/profile", authHandlers.UpdateProfile)
+
+			// Status management routes
+			protected.PUT("/status", statusHandlers.UpdateUserStatus)
+			protected.GET("/status", statusHandlers.GetUserStatus)
+			protected.GET("/status/capabilities", statusHandlers.GetStatusCapabilities)
+			protected.GET("/status/check", statusHandlers.CheckUserAction)
 		}
 
 		// Public routes (no auth required)
 		api.GET("/avatars", authHandlers.GetAvatars)
+		api.GET("/statuses", statusHandlers.GetStatuses) // Use status handlers instead of auth handlers
 
 		// WebSocket endpoint (optional auth)
 		api.GET("/ws", func(c *gin.Context) {
 			chat.HandleWebSocket(hub, c.Writer, c.Request)
 		})
 
-		// REST API endpoints (no auth required for now, but can be protected later)
+		// REST API endpoints with status awareness
 		api.GET("/rooms", func(c *gin.Context) {
 			chat.GetRooms(c, mongoDB)
 		})
-		api.POST("/rooms", func(c *gin.Context) {
-			chat.CreateRoom(c, mongoDB)
-		})
+
+		// Protected room operations
+		protectedRooms := api.Group("/rooms")
+		protectedRooms.Use(auth.AuthMiddleware(authHandlers))
+		protectedRooms.Use(statusMiddleware.InjectStatusInfo())
+		{
+			protectedRooms.POST("/", statusMiddleware.RequireCanJoinRooms(), func(c *gin.Context) {
+				chat.CreateRoom(c, mongoDB)
+			})
+		}
+
 		api.GET("/rooms/:id/messages", func(c *gin.Context) {
 			chat.GetRoomMessages(c, mongoDB)
 		})
